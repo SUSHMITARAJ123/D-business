@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     alignItems: "center",
-    marginVertical: 15,
+    marginVertical: 29,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   icon: {
-    width: 50,  
-    height: 50,
+    width: 60,  
+    height: 60,
   },
   label: {
     fontSize: 14,

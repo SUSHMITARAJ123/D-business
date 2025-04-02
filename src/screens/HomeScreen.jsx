@@ -17,7 +17,7 @@ const HomeScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>D-Business : Let's Get Digital</Text>
         <Text style={styles.subtitle}>
-          Our mission is to support businesses to expand their market.
+          Our mission is to support businesses to expand market.
         </Text>
       </View>
 
