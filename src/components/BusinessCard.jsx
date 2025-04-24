@@ -5,6 +5,7 @@ const BusinessFlowCard = () => {
   return (
     <View style={styles.card}>
       <View style={styles.row}>
+        
         {/* Supplier */}
         <View style={styles.iconContainer}>
           <Image source={require("../assets/supplier.png")} style={styles.icon} />
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     alignItems: "center",
-    marginVertical: 29,
+    marginVertical: 25,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -50,7 +51,6 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: "center",
-    marginHorizontal: 10,
   },
   icon: {
     width: 60,  
