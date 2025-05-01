@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ResetPassword = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -23,42 +25,57 @@ const ResetPassword = ({ navigation }) => {
       Alert.alert('Error', 'Passwords do not match.');
       return;
     }
+
     Alert.alert('Success', 'Password has been reset.');
-    navigation.goBack(); 
+    navigation.goBack();
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Reset Password</Text>
+    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
+      <Text style={styles.title}>🔐 Reset Password</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
+      <View style={styles.inputWrapper}>
+        <Icon name="envelope" size={18} color="#3B82F6" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="New password"
-        secureTextEntry
-        value={newPassword}
-        onChangeText={setNewPassword}
-      />
+      <View style={styles.inputWrapper}>
+        <Icon name="lock" size={18} color="#3B82F6" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="New password"
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry
+          value={newPassword}
+          onChangeText={setNewPassword}
+        />
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm new password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-      />
+      <View style={styles.inputWrapper}>
+        <Icon name="lock" size={18} color="#3B82F6" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Confirm new password"
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+      </View>
 
       <Pressable style={styles.button} onPress={handleReset}>
-        <Text style={styles.buttonText}>Submit</Text>
+        <Text style={styles.buttonText}>
+          <Icon name="check-circle" size={16} color="#fff" /> Submit
+        </Text>
       </Pressable>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -66,7 +83,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: '#00796B',
     justifyContent: 'center',
   },
   title: {
@@ -74,27 +90,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 30,
-    color: 'black',
+    color: '#FFFFFF',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 14,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    height: 54,
     marginBottom: 20,
   },
+  icon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
   button: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#3B82F6',
     paddingVertical: 14,
-    borderRadius: 25,
+    borderRadius: 30,
     alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: {
-    color: '#FFF',
-    fontWeight: '600',
+    color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
   },
 });
 

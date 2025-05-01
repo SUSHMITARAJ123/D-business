@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,15 +7,32 @@ import {
   Pressable,
   Alert,
 } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome";
+import LinearGradient from "react-native-linear-gradient";
 
 const OtpVerificationScreen = ({ route, navigation }) => {
   const { username } = route.params;
   const [otp, setOtp] = useState("");
+  const [timer, setTimer] = useState(60);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleVerifyOtp = () => {
     const cleanOtp = otp.trim();
     console.log("Entered OTP:", cleanOtp);
-    if (otp === "123456") {
+    if (cleanOtp === "123456") {
       Alert.alert("🎉 Congratulations", "You can login now", [
         {
           text: "OK",
@@ -23,70 +40,109 @@ const OtpVerificationScreen = ({ route, navigation }) => {
         },
       ]);
     } else {
-      console.log(typeof(otp))
       Alert.alert("Invalid OTP", "Please try again");
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Verify OTP</Text>
-      <Text style={styles.subtitle}>
-        Enter the OTP sent to {username}
-      </Text>
+  const handleResendOtp = () => {
+    setOtp("");
+    setTimer(60);
+    Alert.alert("OTP Resent", "A new OTP has been sent to your number.");
+  };
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter 6-digit OTP"
-        keyboardType="number-pad"
-        value={otp}
-        onChangeText={setOtp}
-        maxLength={6}
-      />
+  return (
+    <LinearGradient colors={["#1D3557", "#457B9D"]} style={styles.container}>
+      <Text style={styles.title}>Verify OTP</Text>
+      <Text style={styles.subtitle}>Enter the OTP sent to {username}</Text>
+
+      <View style={styles.inputContainer}>
+        <Icon name="lock" size={24} color="#3B82F6" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Enter 6-digit OTP"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="number-pad"
+          value={otp}
+          onChangeText={setOtp}
+          maxLength={6}
+        />
+      </View>
+
+      {timer > 0 ? (
+        <Text style={styles.timer}>⏳ Resend in {timer}s</Text>
+      ) : (
+        <Pressable onPress={handleResendOtp}>
+          <Text style={styles.resend}>
+            <Icon name="redo" size={16} color="#fff" /> Resend OTP
+          </Text>
+        </Pressable>
+      )}
 
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
         onPress={handleVerifyOtp}
       >
-        <Text style={styles.buttonText}>Verify</Text>
+        <Text style={styles.buttonText}>
+          <Icon name="check" size={18} color="#fff" /> Verify
+        </Text>
       </Pressable>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
     padding: 24,
     justifyContent: "center",
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 12,
-    color: "#1E3A8A",
+    color: "#FFFFFF",
   },
   subtitle: {
     fontSize: 14,
     textAlign: "center",
     marginBottom: 30,
-    color: "#4B5563",
+    color: "#D1D5DB",
   },
-  input: {
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
     paddingVertical: 14,
     fontSize: 18,
-    borderColor: "#CBD5E1",
-    borderWidth: 1,
+    color: "#1F2937",
     textAlign: "center",
+  },
+  timer: {
+    textAlign: "center",
+    color: "#FCD34D",
+    marginBottom: 20,
+    fontWeight: "600",
+  },
+  resend: {
+    textAlign: "center",
+    color: "#FFFFFF",
+    fontWeight: "600",
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#3B82F6",
     paddingVertical: 14,
     borderRadius: 30,
     alignItems: "center",
@@ -98,6 +154,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
 

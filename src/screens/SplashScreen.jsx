@@ -1,40 +1,134 @@
-import React, { useEffect } from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import React, { useEffect } from 'react';
+import { View, Text, Animated, StyleSheet } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Video from 'react-native-video';
 
 const SplashScreen = ({ navigation }) => {
+  const fadeAnim = new Animated.Value(0); // Fade-in animation for the text
+  const scaleAnim = new Animated.Value(0); // Scale-up animation for the video container
+  const bounceAnim = new Animated.Value(0); // Bounce animation for text
+
   useEffect(() => {
-    setTimeout(() => {
-      navigation.replace("Home"); 
+    // Timer to navigate after splash screen duration
+    const timer = setTimeout(() => {
+      navigation.replace('Home'); 
     }, 5000);
-  }, []);
+
+    // Animations
+    Animated.parallel([
+      // Fade-in effect for text
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      }).start(),
+
+      // Scale-up effect for video container
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }).start(),
+
+      // Bounce effect for text
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0.8,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start(),
+    ]);
+
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <Image 
-        source={require("../assets/logo1.png")} 
-        style={styles.logo} 
-      />
-      <Text style={styles.text}>Welcome to D-Business</Text>
-    </View>
+    <LinearGradient 
+      colors={['#1D3557', '#457B9D']}  // Navy Blue to Sky Blue gradient
+      style={styles.container}
+    >
+      <Animated.View 
+        style={[styles.videoContainer, { transform: [{ scale: scaleAnim }] }]} // Apply scale animation
+      >
+        <Video
+          source={require('../assets/truck.mp4')}  
+          style={styles.video}
+          resizeMode="cover"
+          repeat
+          muted
+          paused={false}
+        />
+      </Animated.View>
+
+      <Animated.View 
+        style={[styles.textContainer, { opacity: fadeAnim, transform: [{ scale: bounceAnim }] }]} // Apply bounce and fade effect to text
+      >
+        <Text style={styles.title}>E-Logistics Tendering</Text>
+        <Text style={styles.subtitle}>Streamline your logistics operations</Text>
+      </Animated.View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#00796B",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logo: {
-    width: 150,
-    height: 150,
+  videoContainer: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10, // Adding some shadow to the video container for depth
   },
-  text: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  textContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 20,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 10, // Adding shadow for text to make it stand out
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginVertical: 10,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5, // Adding shadow effect to subtitle
   },
 });
 

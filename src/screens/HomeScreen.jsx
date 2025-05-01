@@ -1,150 +1,161 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Pressable,
-} from 'react-native';
-import SearchBar from '../components/SearchBar';
-import BusinessFlowCard from '../components/BusinessCard';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Video from 'react-native-video';
 
-const HomeScreen = ({navigation}) => {
+const { width, height } = Dimensions.get('window');
+
+const LandingScreen = ({ navigation }) => {
+  const bounceAnim = new Animated.Value(0);
+
+  useEffect(() => {
+    // Text bounce animation for the title and brand
+    Animated.sequence([
+      Animated.timing(bounceAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 0.9,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={styles.title}>D-Business: Let's Get Digital</Text>
-        <Text style={styles.subtitle}>
-          Elevate your business with digital transformation.
-        </Text>
+    <View style={styles.container}>
+      {/* Top Video Section */}
+      <View style={styles.topContainer}>
+        <Video
+          source={require('../assets/truck.mp4')}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          repeat
+          muted
+          playWhenInactive={false}
+          playInBackground={false}
+          ignoreSilentSwitch="obey"
+        />
+        <LinearGradient
+          colors={['rgba(27, 27, 77, 0.8)', 'rgba(10, 10, 157, 0)']}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchBar />
-      </View>
+      {/* Bottom Gradient Section */}
+      <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.bottomContainer}>
+        <Animated.View style={[styles.textContainer, { transform: [{ scale: bounceAnim }] }]}>
+          <Text style={styles.title}>Welcome to</Text>
+          <Text style={styles.brand}>E-Logistics</Text>
+          <Text style={styles.subtitle}>Delivering your needs across every route.</Text>
+        </Animated.View>
 
-      {/* Business Flow Section */}
-      <View style={styles.card}>
-        <BusinessFlowCard />
-      </View>
+        {/* Buttons */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryButtonText}>Login</Text>
+        </TouchableOpacity>
 
-      {/* Buttons */}
-      <Pressable
-        onPress={() => navigation.navigate('Signup')}
-        style={({pressed}) => [
-          styles.primaryButton,
-          pressed && styles.buttonPressed,
-        ]}>
-        <Text style={styles.buttonText}>Get Started</Text>
-      </Pressable>
-
-      {/* Log In Button */}
-      <Pressable
-        onPress={() => navigation.navigate('Login')}
-        style={({pressed}) => [
-          styles.secondaryButton,
-          pressed && styles.buttonPressed,
-        ]}>
-        <Text style={styles.buttonText}>Log In</Text>
-      </Pressable>
-    </ScrollView>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('Signup')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.secondaryButtonText}>Create Account</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
-    paddingHorizontal: 20,
-    paddingTop: 60,
+    backgroundColor: '#FFFFFF',
   },
-  header: {
-    backgroundColor: '#00796B',
-    paddingVertical: 40,
+  topContainer: {
+    flex: 0.35,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
-    marginBottom: 25,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 5},
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  bottomContainer: {
+    flex: 0.85,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    //paddingVertical: 40,
+    //paddingHorizontal: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   title: {
     fontSize: 20,
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  brand: {
+    fontSize: 34,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1.1,
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#D1E8FF',
+    fontSize: 15,
+    color: '#FFFFFF',
+    marginBottom: 30,
     textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 20,
     paddingHorizontal: 20,
   },
-  searchContainer: {
-    marginBottom: 20,
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    padding: 28,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    marginBottom: 20,
-    backdropFilter: 'blur(10px)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
   primaryButton: {
-    backgroundColor: '#00796B',
+    backgroundColor: 'white',
+    width: width * 0.7,
     paddingVertical: 14,
-    borderRadius: 25,
+    borderRadius: 30,
     alignItems: 'center',
-    marginBottom: 10,
-    shadowColor: '#2563EB',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
     elevation: 6,
+  },
+  primaryButtonText: {
+    color: '#1D3557', 
+    fontSize: 17,
+    fontWeight: 'bold',
   },
   secondaryButton: {
-    backgroundColor: '#00796B',
+    backgroundColor: 'orange',
+    borderColor: 'orange',
+    borderWidth: 2,
+    width: width * 0.7,
     paddingVertical: 14,
-    borderRadius: 25,
+    borderRadius: 30,
     alignItems: 'center',
-    shadowColor: '#374151',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.7,
+  secondaryButtonText: {
+    color: '#1D3557', // Navy Blue
+    fontSize: 17,
+    fontWeight: 'bold',
   },
 });
 
-export default HomeScreen;
+export default LandingScreen;
