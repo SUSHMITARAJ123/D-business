@@ -4,33 +4,28 @@ import LinearGradient from 'react-native-linear-gradient';
 import Video from 'react-native-video';
 
 const SplashScreen = ({ navigation }) => {
-  const fadeAnim = new Animated.Value(0); // Fade-in animation for the text
-  const scaleAnim = new Animated.Value(0); // Scale-up animation for the video container
-  const bounceAnim = new Animated.Value(0); // Bounce animation for text
+  const fadeAnim = new Animated.Value(0); 
+  const scaleAnim = new Animated.Value(0); 
+  const bounceAnim = new Animated.Value(0);
 
   useEffect(() => {
-    // Timer to navigate after splash screen duration
     const timer = setTimeout(() => {
       navigation.replace('Home'); 
     }, 5000);
 
-    // Animations
     Animated.parallel([
-      // Fade-in effect for text
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 2000,
         useNativeDriver: true,
       }).start(),
 
-      // Scale-up effect for video container
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 4,
         useNativeDriver: true,
       }).start(),
 
-      // Bounce effect for text
       Animated.sequence([
         Animated.timing(bounceAnim, {
           toValue: 1,
@@ -55,11 +50,11 @@ const SplashScreen = ({ navigation }) => {
 
   return (
     <LinearGradient 
-      colors={['#1D3557', '#457B9D']}  // Navy Blue to Sky Blue gradient
+      colors={['#1D3557', '#457B9D']} 
       style={styles.container}
     >
       <Animated.View 
-        style={[styles.videoContainer, { transform: [{ scale: scaleAnim }] }]} // Apply scale animation
+        style={[styles.videoContainer, { transform: [{ scale: scaleAnim }] }]} 
       >
         <Video
           source={require('../assets/truck.mp4')}  
@@ -100,7 +95,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 15,
-    elevation: 10, // Adding some shadow to the video container for depth
+    elevation: 10,
   },
   video: {
     width: '100%',
@@ -119,7 +114,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.6)',
     textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 10, // Adding shadow for text to make it stand out
+    textShadowRadius: 10, 
   },
   subtitle: {
     fontSize: 16,
@@ -128,7 +123,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 5, // Adding shadow effect to subtitle
+    textShadowRadius: 5,
   },
 });
 

@@ -6,7 +6,6 @@ import {
   Pressable,
   StyleSheet,
   Alert,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,7 +17,7 @@ const LoginScreen = ({ navigation }) => {
   const [input, setInput] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!input.trim()) {
       Alert.alert('Error', `Please enter your ${method}.`);
       return;
@@ -29,10 +28,50 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
-    if (method === 'email') {
-      Alert.alert('Success', `Logged in with email: ${input}`);
-    } else {
-      navigation.navigate('SignInOtpVerification', { method, input });
+    try {
+      if (method === 'email') {
+        // console.log('inside if')
+        // Email & Password
+        const response = await fetch('http://10.0.2.2:9090/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: input,
+            password: password,
+          }),
+        });
+        //  console.log('response',response);
+        // const data = await response.json();
+
+        if (response.ok) {
+          Alert.alert('Success', 'Login successful!');
+          // navigation.navigate('DashBoard');
+        } else {
+          Alert.alert('Login Failed', 'Invalid credentials');
+        }
+      } else {
+        // Mobile Login -> Send OTP
+        const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ mobileNumber: input }),
+        });
+
+        console.log('response',response);
+        if (response.status===200) {
+          Alert.alert('OTP Sent', `OTP has been sent to ${input}`);
+          navigation.navigate('SignInOtpVerification', { method, input });
+        } else {
+          Alert.alert('Error', 'Failed to send OTP');
+        }
+      }
+    } catch (error) {
+      console.error('Login Error:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 

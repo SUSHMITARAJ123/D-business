@@ -9,7 +9,6 @@ const LandingScreen = ({ navigation }) => {
   const bounceAnim = new Animated.Value(0);
 
   useEffect(() => {
-    // Text bounce animation for the title and brand
     Animated.sequence([
       Animated.timing(bounceAnim, {
         toValue: 1,
@@ -44,7 +43,7 @@ const LandingScreen = ({ navigation }) => {
           ignoreSilentSwitch="obey"
         />
         <LinearGradient
-          colors={['rgba(27, 27, 77, 0.8)', 'rgba(10, 10, 157, 0)']}
+          colors={['rgba(27, 27, 77, 0.8)', 'rgba(1, 16, 117, 0.09)']}
           style={StyleSheet.absoluteFill}
         />
       </View>
@@ -95,8 +94,8 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     flex: 0.85,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
     //paddingVertical: 40,
     //paddingHorizontal: 30,
     alignItems: 'center',
@@ -152,7 +151,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#1D3557', // Navy Blue
+    color: '#1D3557', 
     fontSize: 17,
     fontWeight: 'bold',
   },

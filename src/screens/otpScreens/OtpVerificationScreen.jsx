@@ -11,7 +11,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import LinearGradient from "react-native-linear-gradient";
 
 const OtpVerificationScreen = ({ route, navigation }) => {
-  const { username } = route.params;
+  const { mobile } = route.params;
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(60);
 
@@ -29,18 +29,46 @@ const OtpVerificationScreen = ({ route, navigation }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     const cleanOtp = otp.trim();
-    console.log("Entered OTP:", cleanOtp);
-    if (cleanOtp === "123456") {
-      Alert.alert("🎉 Congratulations", "You can login now", [
-        {
-          text: "OK",
-          onPress: () => navigation.popToTop(),
+
+    if (cleanOtp.length !== 4) {
+      Alert.alert("Invalid OTP", "OTP must be 4 digits");
+      return;
+    }
+
+    console.log('cleanotp',cleanOtp);
+
+    try {
+      const response = await fetch("http://10.0.2.2:9090/auth/verify-signup-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      ]);
-    } else {
-      Alert.alert("Invalid OTP", "Please try again");
+        body: JSON.stringify({
+          mobileNumber: mobile,
+          otp: cleanOtp,
+        }),
+      });
+
+      console.log('response',response);
+
+      // const data = await response.json();
+
+      if (response.status===200) {
+        Alert.alert("🎉 Success", "You can now login", [
+          {
+            text: "OK",
+            onPress: () => navigation.popToTop(),
+          },
+        ]);
+      } 
+      else {
+        Alert.alert("❌ Verification Failed", "Invalid OTP");
+      }
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      Alert.alert("🚫 Error", "Failed to verify OTP. Please try again later.");
     }
   };
 
@@ -53,13 +81,13 @@ const OtpVerificationScreen = ({ route, navigation }) => {
   return (
     <LinearGradient colors={["#1D3557", "#457B9D"]} style={styles.container}>
       <Text style={styles.title}>Verify OTP</Text>
-      <Text style={styles.subtitle}>Enter the OTP sent to {username}</Text>
+      <Text style={styles.subtitle}>Enter the OTP sent </Text>
 
       <View style={styles.inputContainer}>
         <Icon name="lock" size={24} color="#3B82F6" style={styles.inputIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Enter 6-digit OTP"
+          placeholder="Enter 4-digit OTP"
           placeholderTextColor="#9CA3AF"
           keyboardType="number-pad"
           value={otp}

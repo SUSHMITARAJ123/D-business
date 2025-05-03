@@ -8,23 +8,26 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 
 const SignupScreen = () => {
   const [userType, setUserType] = useState(null);
-  const [username, setUsername] = useState('');
+  const [companyName, setCompanyname] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   const validateFields = () => {
     const newErrors = {};
-    if (!username.trim()) newErrors.username = 'Company name is required';
+    if (!companyName.trim()) newErrors.companyName = 'Company name is required';
     if (!email.trim()) newErrors.email = 'Email is required';
     if (!mobile.trim()) newErrors.mobile = 'Mobile number is required';
     if (!password.trim()) newErrors.password = 'Password is required';
@@ -33,16 +36,80 @@ const SignupScreen = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSignup = () => {
-    if (validateFields()) {
-      navigation.navigate('OtpVerification', {
-        username,
-        email,
-        mobile,
-        userType,
+  const handleSignup = async () => {
+    if (!validateFields()) return;
+   
+    
+    const payload = {
+      companyName: companyName,
+      email,
+      mobileNumber: mobile,
+      location: address,
+      role: userType, 
+      password,
+    };
+
+    console.log('Signup Payload:', {
+      companyName,
+      email,
+      mobileNumber: mobile,
+      location: address,
+      role: userType,
+      password,
+    });
+
+   
+
+
+    try {
+      setLoading(true);
+  
+      const response = await fetch('http://10.0.2.2:9090/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
+   console.log('response',response);
+      const rawText = await response.text();
+      let data;
+  
+      // try {
+      //   data = JSON.parse(rawText);
+      // } catch (parseError) {
+      //   console.error('JSON Parse Error:', parseError);
+      //   Alert.alert('Server Error', 'Invalid response from the server.');
+      //   setLoading(false);
+      //   return;
+      // }
+  
+      setLoading(false);
+  
+      if (response.status === 201) {
+        Alert.alert('Success', 'OTP sent successfully.', [
+          {
+            text: 'OK',
+            onPress: () =>
+              navigation.navigate('OtpVerification', {
+                companyName,
+                email,
+                mobile,
+                userType,
+              }),
+          },
+        ]);
+      } else {
+        Alert.alert('Signup Failed');
+      }
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Error', 'Unable to connect to the server.');
+      console.error('Signup error:', error);
     }
+  
   };
+    
 
   const renderError = (field) =>
     errors[field] && <Text style={styles.error}>{errors[field]}</Text>;
@@ -60,15 +127,15 @@ const SignupScreen = () => {
               <Text style={styles.subHeader}>Choose your role:</Text>
 
               <Pressable
-                style={[styles.selectButton, userType === '3pl' && styles.selected]}
-                onPress={() => setUserType('3pl')}
+                style={[styles.selectButton, userType === '3PL' && styles.selected]}
+                onPress={() => setUserType('3PL')}
               >
                 <Text style={styles.selectText}>🚛 3rd Party Logistic</Text>
               </Pressable>
 
               <Pressable
-                style={[styles.selectButton, userType === 'provider' && styles.selected]}
-                onPress={() => setUserType('provider')}
+                style={[styles.selectButton, userType === 'LSP' && styles.selected]}
+                onPress={() => setUserType('LSP')}
               >
                 <Text style={styles.selectText}>🏢 Logistic Service Provider</Text>
               </Pressable>
@@ -77,7 +144,7 @@ const SignupScreen = () => {
             <>
               <Text style={styles.header}>Create Account</Text>
               <Text style={styles.subHeader}>
-                {userType === '3pl' ? '3rd Party Logistics' : 'Logistic Service Provider'}
+                {userType === '3PL' ? '3rd Party Logistics' : 'Logistic Service Provider'}
               </Text>
 
               <View style={styles.inputBox}>
@@ -86,10 +153,10 @@ const SignupScreen = () => {
                   style={styles.input}
                   placeholder="Enter your company name"
                   placeholderTextColor="#999"
-                  value={username}
+                  value={companyName}
                   onChangeText={(text) => {
-                    setUsername(text);
-                    setErrors((prev) => ({ ...prev, username: '' }));
+                    setCompanyname(text);
+                    setErrors((prev) => ({ ...prev, companyName: '' }));
                   }}
                 />
                 {renderError('username')}
@@ -159,8 +226,12 @@ const SignupScreen = () => {
                 {renderError('address')}
               </View>
 
-              <Pressable style={styles.button} onPress={handleSignup}>
-                <Text style={styles.buttonText}>Continue</Text>
+              <Pressable style={styles.button} onPress={handleSignup} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#1D3557" />
+                ) : (
+                  <Text style={styles.buttonText}>Continue</Text>
+                )}
               </Pressable>
 
               <Pressable

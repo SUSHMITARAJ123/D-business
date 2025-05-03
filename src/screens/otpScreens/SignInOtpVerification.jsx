@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Pressable, Alert, StyleSheet } from "react-native";
-import Icon from 'react-native-vector-icons/FontAwesome'; // Importing icons
-import LinearGradient from 'react-native-linear-gradient'; // Importing LinearGradient
+import Icon from 'react-native-vector-icons/FontAwesome'; 
+import LinearGradient from 'react-native-linear-gradient'; 
 
 const SignInOtpVerification = ({ route, navigation }) => {
   const { method, input } = route.params;
@@ -22,13 +22,35 @@ const SignInOtpVerification = ({ route, navigation }) => {
     return () => clearInterval(countdown);
   }, []);
 
-  const handleVerify = () => {
-    if (otp.length !== 6) {
-      Alert.alert("Error", "Please enter a 6-digit OTP.");
+  const handleVerify = async () => {
+    if (otp.length !== 4) {
+      Alert.alert("Error", "Please enter a 4-digit OTP.");
       return;
     }
 
-    Alert.alert("Success", "OTP verified. You are logged in!");
+    try {
+      const response = await fetch("http://10.0.2.2:9090/auth/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mobileNumber: input,
+          otp: otp,
+        }),
+      });
+
+     console.log('response',response)
+      if (response.status===200) {
+        Alert.alert("Success", "OTP verified. You are logged in!");
+        // navigation.navigate("DashBoard");
+      } else {
+        Alert.alert("Verification Failed",  "Invalid OTP.");
+      }
+    } catch (error) {
+      console.error("OTP Verification Error:", error);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    }
   };
 
   const handleResendOtp = () => {
@@ -38,7 +60,7 @@ const SignInOtpVerification = ({ route, navigation }) => {
   };
 
   return (
-    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}> {/* Gradient background */}
+    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
       <Pressable onPress={() => navigation.goBack()}>
         <Text style={styles.back}>← Back</Text>
       </Pressable>
@@ -50,7 +72,7 @@ const SignInOtpVerification = ({ route, navigation }) => {
 
       <TextInput
         style={styles.input}
-        placeholder="Enter 6-digit OTP"
+        placeholder="Enter 4-digit OTP"
         keyboardType="numeric"
         maxLength={6}
         value={otp}
@@ -92,12 +114,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 10,
     textAlign: "center",
-    color: "#fff", // White text for better visibility on gradient
+    color: "#fff", 
   },
   subHeader: {
     textAlign: "center",
     marginBottom: 20,
-    color: "#D1D5DB", // Light gray text for subheader
+    color: "#D1D5DB",
   },
   input: {
     backgroundColor: "#FFFFFF",
@@ -123,12 +145,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 20,
     fontSize: 14,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
   },
   button: {
-    backgroundColor: "#3B82F6", // Blue button for consistency
+    backgroundColor: "#3B82F6", 
     paddingVertical: 14,
     borderRadius: 25,
     alignItems: "center",
