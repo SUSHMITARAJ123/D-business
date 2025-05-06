@@ -1,12 +1,31 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+  Dimensions,
+  Image,
+  FlatList,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Video from 'react-native-video';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+const images = [
+  require('../assets/logistics2.jpg'),
+  require('../assets/logistics1.jpg'),
+  require('../assets/logistics3.jpg'),
+  require('../assets/logistics4.jpg'),
+  require('../assets/logistics5.jpg'),
+  require('../assets/logistics6.jpg'),
+];
 
 const LandingScreen = ({ navigation }) => {
-  const bounceAnim = new Animated.Value(0);
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef(null);
 
   useEffect(() => {
     Animated.sequence([
@@ -28,22 +47,34 @@ const LandingScreen = ({ navigation }) => {
     ]).start();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (currentIndex + 1) % images.length;
+      flatListRef.current.scrollToIndex({ animated: true, index: nextIndex });
+      setCurrentIndex(nextIndex);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [currentIndex]);
+
+  const renderItem = ({ item }) => (
+    <Image source={item} style={styles.image} resizeMode="cover" />
+  );
+
   return (
     <View style={styles.container}>
-      {/* Top Video Section */}
-      <View style={styles.topContainer}>
-        <Video
-          source={require('../assets/truck.mp4')}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-          repeat
-          muted
-          playWhenInactive={false}
-          playInBackground={false}
-          ignoreSilentSwitch="obey"
+      {/* Carousel Section */}
+      <View style={styles.carouselContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={images}
+          renderItem={renderItem}
+          horizontal
+          pagingEnabled
+          keyExtractor={(item, index) => index.toString()}
+          showsHorizontalScrollIndicator={false}
         />
         <LinearGradient
-          colors={['rgba(27, 27, 77, 0.8)', 'rgba(1, 16, 117, 0.09)']}
+          colors={['rgba(0,0,0,0.6)', 'transparent']}
           style={StyleSheet.absoluteFill}
         />
       </View>
@@ -56,7 +87,6 @@ const LandingScreen = ({ navigation }) => {
           <Text style={styles.subtitle}>Delivering your needs across every route.</Text>
         </Animated.View>
 
-        {/* Buttons */}
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => navigation.navigate('Login')}
@@ -82,24 +112,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  topContainer: {
-    flex: 0.35,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  video: {
+  carouselContainer: {
+    flex: 0.45,
     width: '100%',
+  },
+  image: {
+    width: width,
     height: '100%',
   },
   bottomContainer: {
-    flex: 0.85,
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-    //paddingVertical: 40,
-    //paddingHorizontal: 30,
+    flex: 0.55,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 30,
   },
   textContainer: {
     alignItems: 'center',
@@ -137,7 +164,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   primaryButtonText: {
-    color: '#1D3557', 
+    color: '#1D3557',
     fontSize: 17,
     fontWeight: 'bold',
   },
@@ -151,7 +178,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#1D3557', 
+    color: '#1D3557',
     fontSize: 17,
     fontWeight: 'bold',
   },
