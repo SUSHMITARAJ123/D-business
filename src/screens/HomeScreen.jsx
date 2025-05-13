@@ -1,104 +1,135 @@
-import React from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView 
-} from "react-native";
-import SearchBar from "../components/SearchBar";
-import BusinessFlowCard from "../components/BusinessCard";
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ImageBackground,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import Swiper from 'react-native-swiper';
 
-const HomeScreen = () => {
+const { width, height } = Dimensions.get('window');
+
+const images = [
+  require('../assets/landingscreens.jpg'),
+  require('../assets/logistics1.jpg'),
+  require('../assets/logistics2.jpg'),
+  require('../assets/logistics3.jpg'),
+  require('../assets/logistics4.jpg'),
+  require('../assets/logistics6.jpg'),
+  require('../assets/logistics111.jpg'),
+  require('../assets/logistics222.jpg'),
+  require('../assets/logistics555.jpg'),
+
+];
+
+const LandingScreen = ({ navigation }) => {
   return (
-    <ScrollView style={styles.container}>
-      
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={styles.title}>D-Business : Let's Get Digital</Text>
+    <View style={styles.container}>
+      <Swiper
+        autoplay={true}
+        autoplayTimeout={3}
+        showsPagination={false}
+        loop={true}
+        removeClippedSubviews={false}
+      >
+        {images.map((image, index) => (
+          <ImageBackground
+            key={index}
+            source={image}
+            style={styles.imageBackground}
+            resizeMode="cover"
+          >
+            <View style={styles.overlay} />
+          </ImageBackground>
+        ))}
+      </Swiper>
+
+      <View style={styles.content}>
+        <Text style={styles.welcomeText}>Welcome to</Text>
+        <Text style={styles.title}>E-Logistics</Text>
         <Text style={styles.subtitle}>
-          Our mission is to support businesses to expand their market.
+          Delivering your needs across every route.
         </Text>
+
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.createAccountButton}
+          onPress={() => navigation.navigate('Signup')}
+        >
+          <Text style={styles.createAccountText}>Create Account</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Search Bar */}
-      <SearchBar />
-
-      {/* Business Flow Section */}
-      <BusinessFlowCard />
-
-      {/* Buttons */}
-      <TouchableOpacity style={styles.primaryButton}>
-        <Text style={styles.buttonText}>Create Your Business Profile</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.secondaryButton}>
-        <Text style={styles.buttonText}>Log In</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "smoky white",
-    paddingHorizontal: 20,
-    paddingTop: 80,
   },
-  header: {
-    paddingVertical: 30,
-    alignItems: "center",
-    backgroundColor: "#00796B",
-    // borderBottomLeftRadius: 20,
-    // borderBottomRightRadius: 20,
-    borderRadius: 20,
-    paddingHorizontal: 20,
+  imageBackground: {
+    width: width,
+    height: height,
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,50,0.4)',
+  },
+  content: {
+    position: 'absolute',
+    bottom: 50,
+    width: '100%',
+    paddingHorizontal: 30,
+  },
+  welcomeText: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-    letterSpacing: 1,
+    color: '#fff',
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   subtitle: {
+    color: '#fff',
     fontSize: 16,
-    color: "#B2DFDB",
-    textAlign: "center",
-    marginTop: 8,
+    marginBottom: 30,
     lineHeight: 22,
   },
-  primaryButton: {
-    backgroundColor: "#00796B",
+  loginButton: {
+    backgroundColor: '#fff',
     paddingVertical: 15,
-    borderRadius: 25,
-    alignItems: "center",
-    marginVertical: 10,
-    elevation: 5,  
-    shadowColor: "#00796B",
-    shadowOffset: { width: 2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  secondaryButton: {
-    backgroundColor: "#004D40",
-    paddingVertical: 15,
-    borderRadius: 25,
-    alignItems: "center",
-    marginVertical: 10,
-    elevation: 5, 
-    shadowColor: "#004D40",
-    shadowOffset: { width: 2, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  buttonText: {
-    color: "#FFFFFF",
+  loginButtonText: {
+    color: '#0C1C2C',
     fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.8,
+    fontWeight: 'bold',
+  },
+  createAccountButton: {
+    backgroundColor: '#FBB040',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  createAccountText: {
+    color: '#0C1C2C',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
-export default HomeScreen;
+export default LandingScreen;
