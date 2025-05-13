@@ -47,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
 
         if (response.ok) {
           Alert.alert('Success', 'Login successful!');
-          // navigation.navigate('DashBoard');
+          navigation.navigate('Dashboard');
         } else {
           Alert.alert('Login Failed', 'Invalid credentials');
         }

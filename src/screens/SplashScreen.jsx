@@ -11,7 +11,7 @@ const SplashScreen = ({ navigation }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.replace('Home'); 
-    }, 5000);
+    }, 6000);
 
     Animated.parallel([
       Animated.timing(fadeAnim, {

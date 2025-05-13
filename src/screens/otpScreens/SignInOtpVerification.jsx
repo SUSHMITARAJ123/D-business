@@ -43,7 +43,7 @@ const SignInOtpVerification = ({ route, navigation }) => {
      console.log('response',response)
       if (response.status===200) {
         Alert.alert("Success", "OTP verified. You are logged in!");
-        // navigation.navigate("DashBoard");
+        navigation.navigate('Dashboard');
       } else {
         Alert.alert("Verification Failed",  "Invalid OTP.");
       }

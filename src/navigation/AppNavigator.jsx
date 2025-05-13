@@ -9,6 +9,8 @@ import OtpVerificationScreen from "../screens/otpScreens/OtpVerificationScreen";
 import SuccessScreen from "../screens/SuccessScreen";
 import SignInOtpVerification from "../screens/otpScreens/SignInOtpVerification";
 import ResetPassword from "../screens/ResetPassword";
+import DashboardScreen from "../screens/DashboardScreen";
+import CreateTenderScreen from "../screens/CreateTenderScreen";
 
 const Stack = createStackNavigator();
 
@@ -23,6 +25,9 @@ const AppNavigator = () => {
       <Stack.Screen name="Success" component={SuccessScreen} />
       <Stack.Screen name="SignInOtpVerification" component={SignInOtpVerification} />
       <Stack.Screen name="ResetPassword" component={ResetPassword} />
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="CreateTender" component={CreateTenderScreen} />
+
     </Stack.Navigator>
   );
 };

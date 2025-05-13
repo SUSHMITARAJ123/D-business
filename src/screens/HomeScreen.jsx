@@ -1,108 +1,72 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  Animated,
   StyleSheet,
+  ImageBackground,
+  TouchableOpacity,
   Dimensions,
-  Image,
-  FlatList,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import Swiper from 'react-native-swiper';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const images = [
-  require('../assets/logistics2.jpg'),
+  require('../assets/landingscreens.jpg'),
   require('../assets/logistics1.jpg'),
+  require('../assets/logistics2.jpg'),
   require('../assets/logistics3.jpg'),
   require('../assets/logistics4.jpg'),
-  require('../assets/logistics5.jpg'),
   require('../assets/logistics6.jpg'),
+  require('../assets/logistics111.jpg'),
+  require('../assets/logistics222.jpg'),
+  require('../assets/logistics555.jpg'),
+
 ];
 
 const LandingScreen = ({ navigation }) => {
-  const bounceAnim = useRef(new Animated.Value(0)).current;
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef(null);
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(bounceAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(bounceAnim, {
-        toValue: 0.9,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(bounceAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % images.length;
-      flatListRef.current.scrollToIndex({ animated: true, index: nextIndex });
-      setCurrentIndex(nextIndex);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [currentIndex]);
-
-  const renderItem = ({ item }) => (
-    <Image source={item} style={styles.image} resizeMode="cover" />
-  );
-
   return (
     <View style={styles.container}>
-      {/* Carousel Section */}
-      <View style={styles.carouselContainer}>
-        <FlatList
-          ref={flatListRef}
-          data={images}
-          renderItem={renderItem}
-          horizontal
-          pagingEnabled
-          keyExtractor={(item, index) => index.toString()}
-          showsHorizontalScrollIndicator={false}
-        />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'transparent']}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
+      <Swiper
+        autoplay={true}
+        autoplayTimeout={3}
+        showsPagination={false}
+        loop={true}
+        removeClippedSubviews={false}
+      >
+        {images.map((image, index) => (
+          <ImageBackground
+            key={index}
+            source={image}
+            style={styles.imageBackground}
+            resizeMode="cover"
+          >
+            <View style={styles.overlay} />
+          </ImageBackground>
+        ))}
+      </Swiper>
 
-      {/* Bottom Gradient Section */}
-      <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.bottomContainer}>
-        <Animated.View style={[styles.textContainer, { transform: [{ scale: bounceAnim }] }]}>
-          <Text style={styles.title}>Welcome to</Text>
-          <Text style={styles.brand}>E-Logistics</Text>
-          <Text style={styles.subtitle}>Delivering your needs across every route.</Text>
-        </Animated.View>
+      <View style={styles.content}>
+        <Text style={styles.welcomeText}>Welcome to</Text>
+        <Text style={styles.title}>E-Logistics</Text>
+        <Text style={styles.subtitle}>
+          Delivering your needs across every route.
+        </Text>
 
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={styles.loginButton}
           onPress={() => navigation.navigate('Login')}
-          activeOpacity={0.8}
         >
-          <Text style={styles.primaryButtonText}>Login</Text>
+          <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={styles.createAccountButton}
           onPress={() => navigation.navigate('Signup')}
-          activeOpacity={0.8}
         >
-          <Text style={styles.secondaryButtonText}>Create Account</Text>
+          <Text style={styles.createAccountText}>Create Account</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </View>
   );
 };
@@ -110,76 +74,60 @@ const LandingScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
-  carouselContainer: {
-    flex: 0.45,
-    width: '100%',
-  },
-  image: {
+  imageBackground: {
     width: width,
-    height: '100%',
+    height: height,
+    justifyContent: 'flex-end',
   },
-  bottomContainer: {
-    flex: 0.55,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,50,0.4)',
+  },
+  content: {
+    position: 'absolute',
+    bottom: 50,
+    width: '100%',
     paddingHorizontal: 30,
   },
-  textContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
+  welcomeText: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    marginBottom: 5,
-  },
-  brand: {
-    fontSize: 34,
+    color: '#fff',
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#FFFFFF',
+    color: '#fff',
+    fontSize: 16,
     marginBottom: 30,
-    textAlign: 'center',
-    paddingHorizontal: 20,
+    lineHeight: 22,
   },
-  primaryButton: {
-    backgroundColor: 'white',
-    width: width * 0.7,
-    paddingVertical: 14,
-    borderRadius: 30,
+  loginButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 6,
+    marginBottom: 16,
   },
-  primaryButtonText: {
-    color: '#1D3557',
-    fontSize: 17,
+  loginButtonText: {
+    color: '#0C1C2C',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  secondaryButton: {
-    backgroundColor: 'orange',
-    borderColor: 'orange',
-    borderWidth: 2,
-    width: width * 0.7,
-    paddingVertical: 14,
-    borderRadius: 30,
+  createAccountButton: {
+    backgroundColor: '#FBB040',
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  secondaryButtonText: {
-    color: '#1D3557',
-    fontSize: 17,
+  createAccountText: {
+    color: '#0C1C2C',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
