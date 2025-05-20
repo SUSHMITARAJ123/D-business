@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
   TextInput,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
   Alert,
-  StatusBar,
+  TouchableOpacity,
+  StyleSheet,
   Platform,
+  KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
 
-const CreateTenderScreen = ({ navigation }) => {
-  const [formData, setFormData] = useState({
+const CreateTenderScreen = ({navigation}) => {
+  const [form, setForm] = useState({
     sourceLocation: '',
     destinationLocation: '',
     pickupDate: '',
@@ -25,102 +26,237 @@ const CreateTenderScreen = ({ navigation }) => {
     specialInstructions: '',
   });
 
-  const [datePickerConfig, setDatePickerConfig] = useState({
-    show: false,
-    field: null,
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState({
+    visible: false,
+    field: '',
   });
+  const [errors, setErrors] = useState({});
 
-  const handleChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
-  };
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
-  const handleSubmit = () => {
-    const missing = Object.entries(formData).find(([key, val]) => !val);
-    if (missing) {
-      Alert.alert('Validation Error', `Please fill in ${missing[0]}`);
-      return;
-    }
-    Alert.alert('Tender Created Successfully');
-    navigation.goBack();
+  const handleChange = (key, value) => {
+    setForm({...form, [key]: value});
+    setErrors({...errors, [key]: ''});
   };
 
   const handleDateChange = (event, selectedDate) => {
-    if (Platform.OS !== 'ios') {
-      setDatePickerConfig({ show: false, field: null });
-    }
+    if (Platform.OS !== 'ios') setShowDatePicker({visible: false, field: ''});
+
     if (selectedDate) {
-      const formattedDate = selectedDate.toISOString().split('T')[0];
-      handleChange(datePickerConfig.field, formattedDate);
+      const dateString = selectedDate.toISOString().split('T')[0];
+      handleChange(showDatePicker.field, dateString);
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    const requiredFields = [
+      'sourceLocation',
+      'destinationLocation',
+      'pickupDate',
+      'dropDate',
+      'weight',
+      'tenderPrice',
+    ];
+
+    requiredFields.forEach(field => {
+      if (!form[field]) newErrors[field] = 'This field is required';
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    try {
+      const response = await fetch(
+        `http://10.0.2.2:9090/3PL/tenders/create?companyName=${encodeURIComponent(
+          'EZTransify Logistics',
+        )}`,
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            sourceLocation: form.sourceLocation,
+            destinationLocation: form.destinationLocation,
+            pickupDate: form.pickupDate,
+            dropDate: form.dropDate,
+            weight: parseFloat(form.weight),
+            tenderPrice: parseFloat(form.tenderPrice),
+            specialInstructions: form.specialInstructions,
+          }),
+        },
+      );
+
+      if (response.status === 201) {
+         const tenderData = await response.json();
+        Alert.alert('Success', 'Tender created successfully');
+
+        // const tenderData = {
+        //   sourceLocation: form.sourceLocation,
+        //   destinationLocation: form.destinationLocation,
+        //   pickupDate: form.pickupDate,
+        //   dropDate: form.dropDate,
+        //   weight: form.weight,
+        //   tenderPrice: form.tenderPrice,
+        //   specialInstructions: form.specialInstructions,
+        // };
+
+        setForm({
+          sourceLocation: '',
+          destinationLocation: '',
+          pickupDate: '',
+          dropDate: '',
+          weight: '',
+          tenderPrice: '',
+          specialInstructions: '',
+        });
+        setIsReviewing(false);
+
+        navigation.navigate('TenderDetails', {tender: tenderData});
+      } else {
+        Alert.alert('Error', 'Failed to create tender');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
+  const renderInput = (label, key, iconName, keyboardType = 'default') => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputWrapper}>
+        <Icon name={iconName} size={22} color="#666" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder={label}
+          placeholderTextColor="#999"
+          keyboardType={keyboardType}
+          value={form[key]}
+          onChangeText={value => handleChange(key, value)}
+        />
+      </View>
+      {errors[key] && <Text style={styles.errorText}>{errors[key]}</Text>}
+    </View>
+  );
+
+  const renderDateInput = (label, key) => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>{label}</Text>
+      <TouchableOpacity
+        style={styles.inputWrapper}
+        onPress={() => setShowDatePicker({visible: true, field: key})}>
+        <Icon
+          name="calendar-today"
+          size={22}
+          color="#666"
+          style={styles.icon}
+        />
+        <Text style={form[key] ? styles.dateText : styles.placeholderText}>
+          {form[key] ? form[key] : `Select ${label}`}
+        </Text>
+      </TouchableOpacity>
+      {errors[key] && <Text style={styles.errorText}>{errors[key]}</Text>}
+    </View>
+  );
+
   return (
-    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.gradient}>
-      <StatusBar barStyle="light-content" backgroundColor="#1D3557" />
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.header}>Create Tender</Text>
+    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={80}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.title}>Create Tender</Text>
 
-        <View style={styles.card}>
-          {/* Basic Inputs */}
-          {['sourceLocation', 'destinationLocation', 'weight'].map((field, index) => (
-            <TextInput
-              key={index}
-              style={styles.input}
-              placeholder={field.charAt(0).toUpperCase() + field.replace(/([A-Z])/g, ' $1').slice(1)}
-              placeholderTextColor="#6B7280"
-              value={formData[field]}
-              onChangeText={(text) => handleChange(field, text)}
-              keyboardType={field === 'weight' ? 'numeric' : 'default'}
-            />
-          ))}
+          <Animated.View style={[styles.formCard, {opacity: fadeAnim}]}>
+            {!isReviewing ? (
+              <>
+                <View style={styles.section}>
+                  {renderInput('Source Location', 'sourceLocation', 'place')}
+                  {renderInput(
+                    'Destination Location',
+                    'destinationLocation',
+                    'place',
+                  )}
+                </View>
+                <View style={styles.section}>
+                  {renderDateInput('Pickup Date', 'pickupDate')}
+                  {renderDateInput('Drop Date', 'dropDate')}
+                </View>
+                <View style={styles.section}>
+                  {renderInput('Weight (kg)', 'weight', 'scale', 'numeric')}
+                  {renderInput(
+                    'Tender Price (INR)',
+                    'tenderPrice',
+                    'attach-money',
+                    'numeric',
+                  )}
+                  {renderInput(
+                    'Special Instructions',
+                    'specialInstructions',
+                    'info',
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={styles.buttonPrimary}
+                  onPress={() => setIsReviewing(true)}>
+                  <Text style={styles.buttonText}>Review Tender</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View>
+                <Text style={styles.reviewTitle}>Review Tender</Text>
+                <Text style={styles.reviewItem}>
+                  Source: {form.sourceLocation}
+                </Text>
+                <Text style={styles.reviewItem}>
+                  Destination: {form.destinationLocation}
+                </Text>
+                <Text style={styles.reviewItem}>
+                  Pickup Date: {form.pickupDate}
+                </Text>
+                <Text style={styles.reviewItem}>
+                  Drop Date: {form.dropDate}
+                </Text>
+                <Text style={styles.reviewItem}>Weight: {form.weight} kg</Text>
+                <Text style={styles.reviewItem}>
+                  Price: ₹{form.tenderPrice}
+                </Text>
+                <Text style={styles.reviewItem}>
+                  Instructions: {form.specialInstructions}
+                </Text>
 
-          {/* Pickup Date with Calendar Icon */}
-          <TouchableOpacity
-            style={styles.dateInputWrapper}
-            onPress={() => setDatePickerConfig({ show: true, field: 'pickupDate' })}
-          >
-            <Text style={styles.dateText}>
-              {formData.pickupDate ? formData.pickupDate : 'Pickup Date'}
-            </Text>
-            <Icon name="calendar-today" size={20} color="#6B7280" />
-          </TouchableOpacity>
+                <View style={{marginTop: 20}}>
+                  <TouchableOpacity
+                    style={styles.buttonPrimary}
+                    onPress={handleSubmit}>
+                    <Text style={styles.buttonText}>Submit Tender</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.buttonPrimary,
+                      {backgroundColor: '#999', marginTop: 10},
+                    ]}
+                    onPress={() => setIsReviewing(false)}>
+                    <Text style={styles.buttonText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </Animated.View>
 
-          {/* Drop Date with Calendar Icon */}
-          <TouchableOpacity
-            style={styles.dateInputWrapper}
-            onPress={() => setDatePickerConfig({ show: true, field: 'dropDate' })}
-          >
-            <Text style={styles.dateText}>
-              {formData.dropDate ? formData.dropDate : 'Drop Date'}
-            </Text>
-            <Icon name="calendar-today" size={20} color="#6B7280" />
-          </TouchableOpacity>
-
-          {/* Tender Price with ₹ symbol */}
-          <View style={styles.priceInputWrapper}>
-            <Text style={styles.rupeeSymbol}>₹</Text>
-            <TextInput
-              style={styles.priceInput}
-              placeholder="Tender Price"
-              placeholderTextColor="#6B7280"
-              value={formData.tenderPrice}
-              onChangeText={(text) => handleChange('tenderPrice', text)}
-              keyboardType="numeric"
-            />
-          </View>
-
-          {/* Special Instructions - placed at end */}
-          <TextInput
-            style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-            placeholder="Special Instructions"
-            placeholderTextColor="#6B7280"
-            value={formData.specialInstructions}
-            onChangeText={(text) => handleChange('specialInstructions', text)}
-            multiline
-          />
-
-          {/* Date Picker component */}
-          {datePickerConfig.show && (
+          {showDatePicker.visible && (
             <DateTimePicker
               value={new Date()}
               mode="date"
@@ -128,89 +264,101 @@ const CreateTenderScreen = ({ navigation }) => {
               onChange={handleDateChange}
             />
           )}
-
-          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Submit Tender</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  gradient: {
+  container: {
     flex: 1,
   },
-  container: {
+  scrollContainer: {
     padding: 20,
-    paddingTop: 50,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
-  header: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 20,
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
     textAlign: 'center',
+    marginBottom: 20,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+  formCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
     padding: 20,
     elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: 4},
+  },
+  section: {
+    marginBottom: 16,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontWeight: '600',
+    fontSize: 15,
+    marginBottom: 6,
+    color: '#333',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#D1D5DB',
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+  },
+  icon: {
+    marginRight: 10,
   },
   input: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#D1D5DB',
-    paddingVertical: 12,
+    flex: 1,
     fontSize: 16,
-    marginBottom: 20,
     color: '#111827',
-  },
-  dateInputWrapper: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#D1D5DB',
-    paddingVertical: 12,
-    marginBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   dateText: {
     fontSize: 16,
     color: '#111827',
   },
-  priceInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#D1D5DB',
-    paddingVertical: 12,
-    marginBottom: 20,
-  },
-  rupeeSymbol: {
-    fontSize: 18,
-    color: '#111827',
-    marginRight: 8,
-  },
-  priceInput: {
+  placeholderText: {
     fontSize: 16,
-    flex: 1,
+    color: '#999',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  reviewTitle: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    marginBottom: 10,
     color: '#111827',
   },
-  button: {
-    backgroundColor: '#1D3557',
+  reviewItem: {
+    fontSize: 16,
+    marginBottom: 6,
+    color: '#444',
+  },
+  buttonPrimary: {
+    backgroundColor: '#1d4ed8',
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 10,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

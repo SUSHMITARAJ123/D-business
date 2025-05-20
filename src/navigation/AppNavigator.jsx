@@ -11,6 +11,7 @@ import SignInOtpVerification from "../screens/otpScreens/SignInOtpVerification";
 import ResetPassword from "../screens/ResetPassword";
 import DashboardScreen from "../screens/DashboardScreen";
 import CreateTenderScreen from "../screens/CreateTenderScreen";
+import TenderDetailsScreen from "../screens/TenderDetailsScreen";
 
 const Stack = createStackNavigator();
 
@@ -27,6 +28,7 @@ const AppNavigator = () => {
       <Stack.Screen name="ResetPassword" component={ResetPassword} />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="CreateTender" component={CreateTenderScreen} />
+      <Stack.Screen name="TenderDetails" component={TenderDetailsScreen} />
 
     </Stack.Navigator>
   );

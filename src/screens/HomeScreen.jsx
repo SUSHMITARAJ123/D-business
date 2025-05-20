@@ -13,7 +13,7 @@ const { width, height } = Dimensions.get('window');
 
 const images = [
   require('../assets/landingscreens.jpg'),
-  require('../assets/logistics1.jpg'),
+  // require('../assets/logistics1.jpg'),
   require('../assets/logistics2.jpg'),
   require('../assets/logistics3.jpg'),
   require('../assets/logistics4.jpg'),
