@@ -42,7 +42,7 @@ const LoginScreen = ({ navigation }) => {
             password: password,
           }),
         });
-        //  console.log('response',response);
+         console.log('response',response);
         // const data = await response.json();
 
         if (response.ok) {

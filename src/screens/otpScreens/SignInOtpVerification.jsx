@@ -40,10 +40,17 @@ const SignInOtpVerification = ({ route, navigation }) => {
         }),
       });
 
-     console.log('response',response)
-      if (response.status===200) {
+     const responseText = await response.text(); // Since it's a plain message, not JSON
+console.log('response from otp verfication',responseText); // e.g., "OTP verified. Welcome LSP! Company: EZTransify Logistics"
+const match = responseText.match(/Company:\s*(.+)$/);
+const companyName = match ? match[1] : null;
+
+console.log("Company Name:", companyName);      
+
+if (response.status===200) {
         Alert.alert("Success", "OTP verified. You are logged in!");
-        navigation.navigate('Dashboard');
+       navigation.navigate('Dashboard', { companyName: companyName });
+
       } else {
         Alert.alert("Verification Failed",  "Invalid OTP.");
       }

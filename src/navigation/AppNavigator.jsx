@@ -12,6 +12,9 @@ import ResetPassword from "../screens/ResetPassword";
 import DashboardScreen from "../screens/DashboardScreen";
 import CreateTenderScreen from "../screens/CreateTenderScreen";
 import TenderDetailsScreen from "../screens/TenderDetailsScreen";
+import OngoingTenderScreen from "../screens/OngoingTenderScreen";
+import CompletedTenderScreen from "../screens/CompletedTenderScreen";
+import PendingTenderScreen from "../screens/PendingTenderScreen";
 
 const Stack = createStackNavigator();
 
@@ -29,7 +32,9 @@ const AppNavigator = () => {
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="CreateTender" component={CreateTenderScreen} />
       <Stack.Screen name="TenderDetails" component={TenderDetailsScreen} />
-
+      <Stack.Screen name="OngoingTenderScreen" component={OngoingTenderScreen} />
+      <Stack.Screen name="CompletedTenderScreen" component={CompletedTenderScreen} />
+      <Stack.Screen name="PendingTenderScreen" component={PendingTenderScreen} />
     </Stack.Navigator>
   );
 };

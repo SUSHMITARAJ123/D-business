@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 const SignupScreen = () => {
   const [userType, setUserType] = useState(null);
@@ -24,6 +25,29 @@ const SignupScreen = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
+
+  const handleChange = (field, value) => {
+    switch (field) {
+      case 'companyName':
+        setCompanyname(value);
+        break;
+      case 'email':
+        setEmail(value);
+        break;
+      case 'mobile':
+        setMobile(value);
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      case 'address':
+        setAddress(value);
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
 
   const validateFields = () => {
     const newErrors = {};
@@ -38,32 +62,18 @@ const SignupScreen = () => {
 
   const handleSignup = async () => {
     if (!validateFields()) return;
-   
-    
-    const payload = {
-      companyName: companyName,
-      email,
-      mobileNumber: mobile,
-      location: address,
-      role: userType, 
-      password,
-    };
 
-    console.log('Signup Payload:', {
+    const payload = {
       companyName,
       email,
       mobileNumber: mobile,
       location: address,
       role: userType,
       password,
-    });
-
-   
-
+    };
 
     try {
       setLoading(true);
-  
       const response = await fetch('http://10.0.2.2:9090/auth/signup', {
         method: 'POST',
         headers: {
@@ -71,22 +81,17 @@ const SignupScreen = () => {
         },
         body: JSON.stringify(payload),
       });
-   console.log('response',response);
+
       const rawText = await response.text();
-      let data;
-  
-      // try {
-      //   data = JSON.parse(rawText);
-      // } catch (parseError) {
-      //   console.error('JSON Parse Error:', parseError);
-      //   Alert.alert('Server Error', 'Invalid response from the server.');
-      //   setLoading(false);
-      //   return;
-      // }
-  
       setLoading(false);
-  
+
       if (response.status === 201) {
+        // Save companyName and other user data
+        await AsyncStorage.setItem('companyName', companyName);
+        await AsyncStorage.setItem('email', email);
+        await AsyncStorage.setItem('mobile', mobile);
+        await AsyncStorage.setItem('userType', userType);
+
         Alert.alert('Success', 'OTP sent successfully.', [
           {
             text: 'OK',
@@ -100,16 +105,14 @@ const SignupScreen = () => {
           },
         ]);
       } else {
-        Alert.alert('Signup Failed');
+        Alert.alert('Signup Failed', rawText || 'Please try again later.');
       }
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Unable to connect to the server.');
       console.error('Signup error:', error);
     }
-  
   };
-    
 
   const renderError = (field) =>
     errors[field] && <Text style={styles.error}>{errors[field]}</Text>;
@@ -154,12 +157,9 @@ const SignupScreen = () => {
                   placeholder="Enter your company name"
                   placeholderTextColor="#999"
                   value={companyName}
-                  onChangeText={(text) => {
-                    setCompanyname(text);
-                    setErrors((prev) => ({ ...prev, companyName: '' }));
-                  }}
+                  onChangeText={(text) => handleChange('companyName', text)}
                 />
-                {renderError('username')}
+                {renderError('companyName')}
               </View>
 
               <View style={styles.inputBox}>
@@ -170,10 +170,7 @@ const SignupScreen = () => {
                   placeholderTextColor="#999"
                   keyboardType="email-address"
                   value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    setErrors((prev) => ({ ...prev, email: '' }));
-                  }}
+                  onChangeText={(text) => handleChange('email', text)}
                 />
                 {renderError('email')}
               </View>
@@ -186,10 +183,7 @@ const SignupScreen = () => {
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
                   value={mobile}
-                  onChangeText={(text) => {
-                    setMobile(text);
-                    setErrors((prev) => ({ ...prev, mobile: '' }));
-                  }}
+                  onChangeText={(text) => handleChange('mobile', text)}
                 />
                 {renderError('mobile')}
               </View>
@@ -202,10 +196,7 @@ const SignupScreen = () => {
                   placeholderTextColor="#999"
                   secureTextEntry
                   value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setErrors((prev) => ({ ...prev, password: '' }));
-                  }}
+                  onChangeText={(text) => handleChange('password', text)}
                 />
                 {renderError('password')}
               </View>
@@ -218,15 +209,19 @@ const SignupScreen = () => {
                   placeholderTextColor="#999"
                   multiline
                   value={address}
-                  onChangeText={(text) => {
-                    setAddress(text);
-                    setErrors((prev) => ({ ...prev, address: '' }));
-                  }}
+                  onChangeText={(text) => handleChange('address', text)}
                 />
                 {renderError('address')}
               </View>
 
-              <Pressable style={styles.button} onPress={handleSignup} disabled={loading}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.button,
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={handleSignup}
+                disabled={loading}
+              >
                 {loading ? (
                   <ActivityIndicator color="#1D3557" />
                 ) : (
@@ -240,6 +235,18 @@ const SignupScreen = () => {
               >
                 <Text style={styles.backLink}>← Back</Text>
               </Pressable>
+
+              <View style={{ marginTop: 25, alignItems: 'center' }}>
+                <Text style={{ color: '#DCEFFF' }}>
+                  Already have an account?{' '}
+                  <Text
+                    style={{ color: '#F1FAEE', fontWeight: 'bold' }}
+                    onPress={() => navigation.navigate('Login')}
+                  >
+                    Login
+                  </Text>
+                </Text>
+              </View>
             </>
           )}
         </ScrollView>
@@ -249,27 +256,10 @@ const SignupScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    paddingTop: 50,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subHeader: {
-    fontSize: 16,
-    color: '#DCEFFF',
-    textAlign: 'center',
-    marginBottom: 25,
-  },
+  gradient: { flex: 1 },
+  container: { flexGrow: 1, padding: 24, paddingTop: 50 },
+  header: { fontSize: 28, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 10 },
+  subHeader: { fontSize: 16, color: '#DCEFFF', textAlign: 'center', marginBottom: 25 },
   selectButton: {
     backgroundColor: '#ffffff22',
     paddingVertical: 16,
@@ -288,15 +278,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#F1FAEE',
   },
-  inputBox: {
-    marginBottom: 15,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#E0E0E0',
-    marginBottom: 6,
-  },
+  inputBox: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: '#E0E0E0', marginBottom: 6 },
   input: {
     backgroundColor: '#fff',
     borderRadius: 10,
@@ -323,21 +306,9 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  buttonText: {
-    color: '#1D3557',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  error: {
-    color: '#FFCDD2',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  backLink: {
-    fontSize: 14,
-    color: '#F1FAEE',
-    fontWeight: '500',
-  },
+  buttonText: { color: '#1D3557', fontSize: 16, fontWeight: 'bold' },
+  error: { color: '#FFCDD2', fontSize: 13, marginTop: 4 },
+  backLink: { fontSize: 14, color: '#F1FAEE', fontWeight: '500' },
 });
 
 export default SignupScreen;

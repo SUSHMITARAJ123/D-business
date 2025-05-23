@@ -9,8 +9,11 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import { useRoute } from '@react-navigation/native';
 
 const DashboardScreen = ({ navigation }) => {
+  const route = useRoute();
+  const { companyName } = route.params;
   return (
     <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.gradient}>
       <StatusBar barStyle="light-content" backgroundColor="#1D3557" />
@@ -21,7 +24,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.cardContainer}>
           <TouchableOpacity
             style={[styles.card, styles.cardBlue]}
-            onPress={() => navigation.navigate('CreateTender')}
+            onPress={() => navigation.navigate('CreateTender', { companyName: companyName })}
           >
             <Icon name="add-circle-outline" size={40} color="#00796B" />
             <Text style={styles.cardTitle}>Create Tender</Text>
@@ -29,24 +32,21 @@ const DashboardScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.card, styles.cardGreen]}
-            onPress={() => alert('Completed Tenders')}
-          >
+            onPress={() => navigation.navigate('CompletedTenderScreen', { companyName })}>
             <Icon name="check-circle" size={40} color="#1E7C31" />
             <Text style={styles.cardTitle}>Completed</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.card, styles.cardSky]}
-            onPress={() => alert('Ongoing Tenders')}
-          >
+           onPress={() => navigation.navigate('OngoingTenderScreen', { companyName })}>
             <Icon name="autorenew" size={40} color="#2563EB" />
             <Text style={styles.cardTitle}>Ongoing</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.card, styles.cardYellow]}
-            onPress={() => alert('Pending Tenders')}
-          >
+            onPress={() => navigation.navigate('PendingTenderScreen', { companyName })}>
             <Icon name="schedule" size={40} color="#EAB308" />
             <Text style={styles.cardTitle}>Pending</Text>
           </TouchableOpacity>
@@ -68,6 +68,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '700',
     color: '#FFFFFF',
+     marginTop: 20,
     marginBottom: 4,
   },
   subtitle: {
@@ -78,6 +79,8 @@ const styles = StyleSheet.create({
   cardContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
     justifyContent: 'space-between',
     rowGap: 18,
   },
