@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   statusInactive: {
-    color: '#e63946',
+    color: 'blue',
     fontWeight: '700',
   },
 });

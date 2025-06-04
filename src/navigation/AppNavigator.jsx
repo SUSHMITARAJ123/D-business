@@ -15,6 +15,11 @@ import TenderDetailsScreen from "../screens/TenderDetailsScreen";
 import OngoingTenderScreen from "../screens/OngoingTenderScreen";
 import CompletedTenderScreen from "../screens/CompletedTenderScreen";
 import PendingTenderScreen from "../screens/PendingTenderScreen";
+import LspListScreen from "../screens/LspListScreen";
+import LspDashboardScreen from "../screens/LSP/LspDashboardScreen";
+import ProfileScreen from "../screens/ProfileScreen";
+import SettingsScreen from "../screens/SettingsScreen";
+
 
 const Stack = createStackNavigator();
 
@@ -35,6 +40,12 @@ const AppNavigator = () => {
       <Stack.Screen name="OngoingTenderScreen" component={OngoingTenderScreen} />
       <Stack.Screen name="CompletedTenderScreen" component={CompletedTenderScreen} />
       <Stack.Screen name="PendingTenderScreen" component={PendingTenderScreen} />
+      <Stack.Screen name="LspListScreen" component={LspListScreen} />
+      <Stack.Screen name="LspDashboardScreen" component={LspDashboardScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+
+
     </Stack.Navigator>
   );
 };

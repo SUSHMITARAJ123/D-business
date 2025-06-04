@@ -32,6 +32,10 @@ const CompletedTenderScreen = () => {
         });
 
         if (!response.ok) {
+          if (response.status === 404) {
+            setTenders([]);
+            return;
+          }
           const errorText = await response.text();
           throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
@@ -111,6 +115,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginTop: 40,
+     marginBottom: 20,
   },
   subheading: {
     fontSize: 16,

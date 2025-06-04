@@ -225,7 +225,7 @@ const SignupScreen = () => {
                 {loading ? (
                   <ActivityIndicator color="#1D3557" />
                 ) : (
-                  <Text style={styles.buttonText}>Continue</Text>
+                  <Text style={styles.buttonText}>SignUp</Text>
                 )}
               </Pressable>
 

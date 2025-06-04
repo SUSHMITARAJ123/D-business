@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Pressable, Alert, StyleSheet } from "react-native";
+import React, { useRef,  useState, useEffect } from "react";
+import { View, Text, TextInput, Pressable, Alert, StyleSheet, Keyboard,} from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome'; 
 import LinearGradient from 'react-native-linear-gradient'; 
 
 const SignInOtpVerification = ({ route, navigation }) => {
   const { method, input } = route.params;
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(60);
+
+  const inputsRef = useRef([]);
 
   useEffect(() => {
     const countdown = setInterval(() => {
@@ -22,69 +24,106 @@ const SignInOtpVerification = ({ route, navigation }) => {
     return () => clearInterval(countdown);
   }, []);
 
-  const handleVerify = async () => {
-    if (otp.length !== 4) {
-      Alert.alert("Error", "Please enter a 4-digit OTP.");
-      return;
+  const handleOtpChange = (index, value) => {
+    if (!/^\d?$/.test(value)) return;
+
+    const newOtp = [...otpDigits];
+    newOtp[index] = value;
+    setOtpDigits(newOtp);
+
+    if (value && index < 3) {
+      inputsRef.current[index + 1].focus();
     }
 
-    try {
-      const response = await fetch("http://10.0.2.2:9090/auth/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mobileNumber: input,
-          otp: otp,
-        }),
-      });
-
-     const responseText = await response.text(); // Since it's a plain message, not JSON
-console.log('response from otp verfication',responseText); // e.g., "OTP verified. Welcome LSP! Company: EZTransify Logistics"
-const match = responseText.match(/Company:\s*(.+)$/);
-const companyName = match ? match[1] : null;
-
-console.log("Company Name:", companyName);      
-
-if (response.status===200) {
-        Alert.alert("Success", "OTP verified. You are logged in!");
-       navigation.navigate('Dashboard', { companyName: companyName });
-
-      } else {
-        Alert.alert("Verification Failed",  "Invalid OTP.");
-      }
-    } catch (error) {
-      console.error("OTP Verification Error:", error);
-      Alert.alert("Error", "Something went wrong. Please try again.");
+    if (!value && index > 0) {
+      inputsRef.current[index - 1].focus();
     }
   };
 
+  const handleKeyPress = (e, index) => {
+    if (e.nativeEvent.key === "Backspace" && otpDigits[index] === "" && index > 0) {
+      inputsRef.current[index - 1].focus();
+    }
+  };
+
+  const handleVerify = async () => {
+  const otp = otpDigits.join("");
+
+  if (otp.length !== 4) {
+    Alert.alert("Error", "Please enter a 4-digit OTP.");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://10.0.2.2:9090/auth/verify-otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        mobileNumber: input,
+        otp: otp,
+      }),
+    });
+
+    const responseText = await response.text(); 
+    console.log('Response:', responseText);
+
+    const roleMatch = responseText.match(/Welcome\s+([A-Z_]+)!/);
+    const companyMatch = responseText.match(/Company:\s*(.+)/);
+
+    const role = roleMatch ? roleMatch[1] : null;
+    const companyName = companyMatch ? companyMatch[1].trim() : null;
+
+    if (response.status === 200 && role && companyName) {
+      Alert.alert("Success", "OTP verified. You are logged in!");
+
+      if (role === "LSP") {
+        navigation.navigate("LspDashboardScreen", { companyName });
+      } else if (role === "THREE_PL") {
+        navigation.navigate("Dashboard", { companyName });
+      } else {
+        Alert.alert("Error", `Unrecognized role: ${role}`);
+      }
+    } else {
+      Alert.alert("Verification Failed", "Invalid OTP or user role.");
+    }
+  } catch (error) {
+    console.error("OTP Verification Error:", error);
+    Alert.alert("Error", "Something went wrong. Please try again.");
+  }
+};
+
+
   const handleResendOtp = () => {
-    setOtp("");
+    setOtpDigits(["", "", "", ""]);
     setTimer(60);
     Alert.alert("OTP Sent", `A new OTP has been sent to your ${method}.`);
   };
 
   return (
     <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
-      <Pressable onPress={() => navigation.goBack()}>
-        <Text style={styles.back}>← Back</Text>
-      </Pressable>
 
       <Text style={styles.header}>Enter OTP</Text>
       <Text style={styles.subHeader}>
         OTP sent to your {method === "mobile" ? "mobile" : "email"}: {input}
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter 4-digit OTP"
-        keyboardType="numeric"
-        maxLength={6}
-        value={otp}
-        onChangeText={setOtp}
-      />
+      <View style={styles.otpContainer}>
+        {otpDigits.map((digit, index) => (
+          <TextInput
+            key={index}
+            ref={(ref) => (inputsRef.current[index] = ref)}
+            style={styles.otpBox}
+            value={digit}
+            onChangeText={(value) => handleOtpChange(index, value)}
+            onKeyPress={(e) => handleKeyPress(e, index)}
+            keyboardType="numeric"
+            maxLength={1}
+            autoFocus={index === 0}
+          />
+        ))}
+      </View>
 
       {timer > 0 ? (
         <Text style={styles.timerText}>⏳ Resend in {timer} sec</Text>
@@ -100,6 +139,9 @@ if (response.status===200) {
         <Text style={styles.buttonText}>
           <Icon name="check" size={18} color="#fff" /> Verify OTP
         </Text>
+      </Pressable>
+       <Pressable onPress={() => navigation.goBack()}>
+        <Text style={styles.back}>← Back</Text>
       </Pressable>
     </LinearGradient>
   );
@@ -128,16 +170,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: "#D1D5DB",
   },
-  input: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#D1D5DB",
-    borderWidth: 1,
-    padding: 14,
-    borderRadius: 10,
-    fontSize: 18,
-    letterSpacing: 6,
-    textAlign: "center",
+  otpContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
+  },
+  otpBox: {
+    width: 60,
+    height: 60,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "bold",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 5,
   },
   timerText: {
     textAlign: "center",

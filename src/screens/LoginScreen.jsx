@@ -18,62 +18,65 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
 
   const handleContinue = async () => {
-    if (!input.trim()) {
-      Alert.alert('Error', `Please enter your ${method}.`);
-      return;
-    }
+  if (!input.trim()) {
+    Alert.alert('Error', `Please enter your ${method}.`);
+    return;
+  }
 
-    if (method === 'email' && !password.trim()) {
-      Alert.alert('Error', 'Please enter your password.');
-      return;
-    }
+  if (method === 'email' && !password.trim()) {
+    Alert.alert('Error', 'Please enter your password.');
+    return;
+  }
 
-    try {
-      if (method === 'email') {
-        // console.log('inside if')
-        // Email & Password
-        const response = await fetch('http://10.0.2.2:9090/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: input,
-            password: password,
-          }),
-        });
-         console.log('response',response);
-        // const data = await response.json();
+  try {
+    if (method === 'email') {
+      const response = await fetch('http://10.0.2.2:9090/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: input, password: password }),
+      });
 
-        if (response.ok) {
-          Alert.alert('Success', 'Login successful!');
-          navigation.navigate('Dashboard');
+      const text = await response.text();
+      console.log('Login response:', text);
+
+      if (response.ok && text.includes('Login successful')) {
+        const roleMatch = text.match(/Welcome (\w+)!/);
+        const companyMatch = text.match(/Company: (.+)$/);
+
+        const role = roleMatch?.[1]?.toUpperCase();
+        const companyName = companyMatch?.[1]?.trim();
+
+        if (role === 'LSP') {
+          navigation.navigate('LspDashboardScreen', { companyName });
+        } else if (role === 'THREE_PL') {
+          navigation.navigate('Dashboard', { companyName });
         } else {
-          Alert.alert('Login Failed', 'Invalid credentials');
+          Alert.alert('Success', 'Login successful, but unknown role.');
         }
       } else {
-        // Mobile Login -> Send OTP
-        const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ mobileNumber: input }),
-        });
-
-        console.log('response',response);
-        if (response.status===200) {
-          Alert.alert('OTP Sent', `OTP has been sent to ${input}`);
-          navigation.navigate('SignInOtpVerification', { method, input });
-        } else {
-          Alert.alert('Error', 'Failed to send OTP');
-        }
+        Alert.alert('Login Failed', text || 'Invalid credentials');
       }
-    } catch (error) {
-      console.error('Login Error:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } else {
+      // Mobile login
+      const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobileNumber: input }),
+      });
+
+      if (response.status === 200) {
+        Alert.alert('OTP Sent', `OTP sent to ${input}`);
+        navigation.navigate('SignInOtpVerification', { method, input });
+      } else {
+        Alert.alert('Error', 'Failed to send OTP');
+      }
     }
-  };
+  } catch (error) {
+    console.error('Login Error:', error);
+    Alert.alert('Error', 'Something went wrong. Please try again.');
+  }
+};
+
 
   return (
     <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>

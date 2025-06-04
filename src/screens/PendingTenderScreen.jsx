@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginTop: 40,
+    marginBottom: 20,
   },
   subheading: {
     fontSize: 16,
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   card: {
-    backgroundColor: '#FFFDE7',
+    backgroundColor: '#FFF',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,

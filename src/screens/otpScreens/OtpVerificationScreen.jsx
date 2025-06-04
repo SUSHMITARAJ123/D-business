@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef  } from "react";
 import {
   View,
   Text,
@@ -6,14 +6,18 @@ import {
   TextInput,
   Pressable,
   Alert,
+  Animated,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import LinearGradient from "react-native-linear-gradient";
 
 const OtpVerificationScreen = ({ route, navigation }) => {
   const { mobile } = route.params;
-  const [otp, setOtp] = useState("");
+  //const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(60);
+  const inputs = useRef([]);
+  const scaleAnim = useRef(otpDigits.map(() => new Animated.Value(1))).current;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -29,8 +33,46 @@ const OtpVerificationScreen = ({ route, navigation }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleChange = (text, index) => {
+    if (/^\d$/.test(text)) {
+      const newOtp = [...otpDigits];
+      newOtp[index] = text;
+      setOtpDigits(newOtp);
+      animateBox(index);
+
+      if (index < 3) {
+        inputs.current[index + 1].focus();
+      }
+    } else if (text === "") {
+      const newOtp = [...otpDigits];
+      newOtp[index] = "";
+      setOtpDigits(newOtp);
+    }
+  };
+
+  const handleKeyPress = ({ nativeEvent }, index) => {
+    if (nativeEvent.key === "Backspace" && otpDigits[index] === "" && index > 0) {
+      inputs.current[index - 1].focus();
+    }
+  };
+
+  const animateBox = (index) => {
+    Animated.sequence([
+      Animated.timing(scaleAnim[index], {
+        toValue: 1.1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim[index], {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const handleVerifyOtp = async () => {
-    const cleanOtp = otp.trim();
+    const cleanOtp = otpDigits.join("");
 
     if (cleanOtp.length !== 4) {
       Alert.alert("Invalid OTP", "OTP must be 4 digits");
@@ -73,7 +115,7 @@ const OtpVerificationScreen = ({ route, navigation }) => {
   };
 
   const handleResendOtp = () => {
-    setOtp("");
+    setOtpDigits(["", "", "", ""]);
     setTimer(60);
     Alert.alert("OTP Resent", "A new OTP has been sent to your number.");
   };
@@ -83,17 +125,22 @@ const OtpVerificationScreen = ({ route, navigation }) => {
       <Text style={styles.title}>Verify OTP</Text>
       <Text style={styles.subtitle}>Enter the OTP sent </Text>
 
-      <View style={styles.inputContainer}>
-        <Icon name="lock" size={24} color="#3B82F6" style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter 4-digit OTP"
-          placeholderTextColor="#9CA3AF"
-          keyboardType="number-pad"
-          value={otp}
-          onChangeText={setOtp}
-          maxLength={6}
-        />
+<View style={styles.otpBoxContainer}>
+        {otpDigits.map((digit, index) => (
+          <Animated.View key={index} style={[styles.animatedBox, { transform: [{ scale: scaleAnim[index] }] }]}>
+            <TextInput
+              ref={(ref) => (inputs.current[index] = ref)}
+              value={digit}
+              onChangeText={(text) => handleChange(text, index)}
+              keyboardType="number-pad"
+              maxLength={1}
+              onKeyPress={(e) => handleKeyPress(e, index)}
+              style={styles.otpBox}
+              placeholder="-"
+              placeholderTextColor="#9CA3AF"
+            />
+          </Animated.View>
+        ))}
       </View>
 
       {timer > 0 ? (
@@ -137,25 +184,30 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     color: "#D1D5DB",
   },
-  inputContainer: {
+  otpBoxContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
+    justifyContent: "space-evenly",
     marginBottom: 20,
   },
-  inputIcon: {
-    marginRight: 10,
+  animatedBox: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+    backgroundColor: "transparent",
+    borderRadius: 8,
   },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 18,
-    color: "#1F2937",
+  otpBox: {
+    width: 50,
+    height: 60,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
     textAlign: "center",
+    fontSize: 22,
+    backgroundColor: "#FFFFFF",
+    color: "#1F2937",
   },
   timer: {
     textAlign: "center",

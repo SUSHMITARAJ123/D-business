@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     fontWeight: '600',
-    color: '#0288D1',
+    color: 'blue',
   },
   noData: {
     textAlign: 'center',
