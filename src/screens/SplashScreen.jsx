@@ -67,7 +67,7 @@ const SplashScreen = ({ navigation }) => {
       </Animated.View>
 
       <Animated.View 
-        style={[styles.textContainer, { opacity: fadeAnim, transform: [{ scale: bounceAnim }] }]} // Apply bounce and fade effect to text
+        style={[styles.textContainer, { opacity: fadeAnim, transform: [{ scale: bounceAnim }] }]} 
       >
         <Text style={styles.title}>E-Logistics Tendering</Text>
         <Text style={styles.subtitle}>Streamline your logistics operations</Text>

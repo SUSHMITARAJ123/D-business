@@ -86,7 +86,6 @@ const SignupScreen = () => {
       setLoading(false);
 
       if (response.status === 201) {
-        // Save companyName and other user data
         await AsyncStorage.setItem('companyName', companyName);
         await AsyncStorage.setItem('email', email);
         await AsyncStorage.setItem('mobile', mobile);

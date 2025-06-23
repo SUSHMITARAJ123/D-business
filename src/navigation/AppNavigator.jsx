@@ -19,6 +19,8 @@ import LspListScreen from "../screens/LspListScreen";
 import LspDashboardScreen from "../screens/LSP/LspDashboardScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import LSPTenderDetails from "../screens/LSP/LSPTenderDetails";
+import MyBidsScreen from "../screens/LSP/MyBidsScreen";
 
 
 const Stack = createStackNavigator();
@@ -44,6 +46,9 @@ const AppNavigator = () => {
       <Stack.Screen name="LspDashboardScreen" component={LspDashboardScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="LSPTenderDetails" component={LSPTenderDetails} />
+      <Stack.Screen name="MyBids" component={MyBidsScreen} />
+
 
 
     </Stack.Navigator>

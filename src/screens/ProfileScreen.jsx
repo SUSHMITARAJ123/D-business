@@ -1,196 +1,190 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  StatusBar,
+  TextInput,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
-export default function ProfileScreen() {
-  const [editing, setEditing] = useState(false);
-  const [profile, setProfile] = useState({
-    name: 'Sushmita Raj',
-    company: 'LogiTrack Pvt Ltd',
-    email: 'sushmita@example.com',
-    phone: '9876543210',
-    location: 'Muzaffarpur, Bihar',
-  });
+const ProfileScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  const handleEditToggle = () => setEditing(!editing);
+ 
+  const mobileNumber = route?.params?.mobileNumber ?? null;
+  const email = route?.params?.email ?? null;
+
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+
+  const [companyName, setCompanyName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userMobile, setUserMobile] = useState('');
+  const [location, setLocation] = useState('');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+       
+        console.log('Fetching profile for:', { mobileNumber, email });
+
+        if (!mobileNumber && !email) {
+          Alert.alert('Error', 'No mobile number or email provided!');
+          return;
+        }
+
+        const body = mobileNumber ? { mobileNumber } : { email };
+
+        const response = await fetch('http://10.0.2.2:9090/users/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        console.log('API status:', response.status);
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Profile data:', data);
+
+        setProfile(data);
+
+      
+        setCompanyName(data.companyName || '');
+        setUserEmail(data.email || '');
+        setUserMobile(data.mobileNumber || '');
+        setLocation(data.location || '');
+
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        Alert.alert('Error', 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [mobileNumber, email]);
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', onPress: () => navigation.navigate('Login') },
+    ]);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1D3557" />
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Profile not available</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* <Image style={styles.avatar} source={{ uri: 'https://i.pravatar.cc/300' }} /> */}
-      <TouchableOpacity style={styles.editBtn} onPress={handleEditToggle}>
-        <Icon name={editing ? "check" : "pencil"} size={20} color="#fff" />
-        <Text style={styles.editText}>{editing ? "Save" : "Edit Profile"}</Text>
-      </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1D3557" />
 
-      {Object.entries(profile).map(([key, value]) => (
-        <View key={key} style={styles.field}>
-          <Text style={styles.label}>{key.toUpperCase()}</Text>
-          {editing && key !== 'email' && key !== 'company' ? (
-            <TextInput
-              style={styles.input}
-              value={value}
-              onChangeText={(text) => setProfile({ ...profile, [key]: text })}
-            />
-          ) : (
-            <Text style={styles.value}>{value}</Text>
-          )}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>My Profile</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={handleLogout}>
+            <Icon name="logout" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
-      ))}
-    </ScrollView>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.profileItem}>
+          <Icon name="account" size={24} color="#1D3557" />
+          <Text style={styles.profileText}>{profile.companyName}</Text>
+        </View>
+
+        <View style={styles.profileItem}>
+          <Icon name="email" size={24} color="#1D3557" />
+          <Text style={styles.profileText}>{profile.email}</Text>
+        </View>
+
+        <View style={styles.profileItem}>
+          <Icon name="phone" size={24} color="#1D3557" />
+          <Text style={styles.profileText}>{profile.mobileNumber}</Text>
+        </View>
+
+        <View style={styles.profileItem}>
+          <Icon name="map-marker" size={24} color="#1D3557" />
+          <Text style={styles.profileText}>{profile.location}</Text>
+        </View>
+
+        <View style={styles.profileItem}>
+          <Icon name="shield-account" size={24} color="#1D3557" />
+          <Text style={styles.profileText}>{profile.role}</Text>
+        </View>
+      </ScrollView>
+    </View>
   );
-}
+};
+
+export default ProfileScreen;
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', padding: 20 },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 20 },
-  editBtn: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F4F8',
+  },
+  header: {
+    backgroundColor: '#1D3557',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 15 : 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  content: {
+    padding: 20,
+  },
+  profileItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#5a67d8',
-    padding: 10,
-    borderRadius: 10,
     marginBottom: 20,
   },
-  editText: { color: '#fff', marginLeft: 8 },
-  field: { width: '100%', marginBottom: 15 },
-  label: { fontSize: 12, color: '#999' },
-  value: { fontSize: 16, color: '#333' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
+  profileText: {
+    marginLeft: 15,
+    fontSize: 18,
     color: '#333',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF6B6B',
+  },
 });
-
-
-// import React, { useEffect, useState } from 'react';
-// import {
-//   View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert
-// } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-// export default function ProfileScreen() {
-//   const [editing, setEditing] = useState(false);
-//   const [profile, setProfile] = useState(null);
-//   const [userRole, setUserRole] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   const fetchProfile = async () => {
-//     try {
-//       const token = await AsyncStorage.getItem('authToken');
-//       const role = await AsyncStorage.getItem('userRole');
-//       setUserRole(role);
-
-//       let endpoint = '';
-//       if (role === '3PL') endpoint = '/3PL/profile';
-//       else if (role === 'LSP') endpoint = '/LSP/profile';
-//       else if (role === 'Admin') endpoint = '/admin/profile';
-//       else throw new Error('Invalid role');
-
-//       const response = await fetch(`http://10.0.2.2:9090${endpoint}`, {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       });
-
-//       const data = await response.json();
-//       setProfile(data);
-//     } catch (err) {
-//       console.error(err);
-//       Alert.alert('Error', 'Failed to load profile');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const updateProfile = async () => {
-//     try {
-//       const token = await AsyncStorage.getItem('authToken');
-//       let endpoint = userRole === '3PL' ? '/3PL/profile' :
-//                      userRole === 'LSP' ? '/LSP/profile' :
-//                      '/admin/profile';
-
-//       const response = await fetch(`http://10.0.2.2:9090${endpoint}`, {
-//         method: 'PUT',
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify(profile),
-//       });
-
-//       if (!response.ok) throw new Error("Failed to update");
-
-//       Alert.alert("Success", "Profile updated");
-//       setEditing(false);
-//     } catch (err) {
-//       console.error(err);
-//       Alert.alert('Error', 'Failed to update profile');
-//     }
-//   };
-
-//   const handleEditToggle = () => {
-//     if (editing) updateProfile();
-//     else setEditing(true);
-//   };
-
-//   useEffect(() => {
-//     fetchProfile();
-//   }, []);
-
-//   if (loading || !profile) return <Text style={{ marginTop: 40 }}>Loading...</Text>;
-
-//   return (
-//     <ScrollView contentContainerStyle={styles.container}>
-//       <TouchableOpacity style={styles.editBtn} onPress={handleEditToggle}>
-//         <Icon name={editing ? "check" : "pencil"} size={20} color="#fff" />
-//         <Text style={styles.editText}>{editing ? "Save" : "Edit Profile"}</Text>
-//       </TouchableOpacity>
-
-//       {Object.entries(profile).map(([key, value]) => (
-//         <View key={key} style={styles.field}>
-//           <Text style={styles.label}>{key.toUpperCase()}</Text>
-//           {editing && key !== 'email' && key !== 'role' ? (
-//             <TextInput
-//               style={styles.input}
-//               value={value}
-//               onChangeText={(text) => setProfile({ ...profile, [key]: text })}
-//             />
-//           ) : (
-//             <Text style={styles.value}>{value}</Text>
-//           )}
-//         </View>
-//       ))}
-//     </ScrollView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: { padding: 20 },
-//   editBtn: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     backgroundColor: '#5a67d8',
-//     padding: 10,
-//     borderRadius: 10,
-//     marginBottom: 20,
-//     alignSelf: 'center',
-//   },
-//   editText: { color: '#fff', marginLeft: 8 },
-//   field: { marginBottom: 15 },
-//   label: { fontSize: 12, color: '#999' },
-//   value: { fontSize: 16, color: '#333' },
-//   input: {
-//     borderWidth: 1,
-//     borderColor: '#ccc',
-//     borderRadius: 8,
-//     padding: 10,
-//     fontSize: 16,
-//     color: '#333',
-//   },
-// });
-

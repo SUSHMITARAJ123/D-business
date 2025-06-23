@@ -1,231 +1,235 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, FlatList, StyleSheet,
-  ActivityIndicator, Alert, TouchableOpacity, ScrollView, Platform
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import { Card } from 'react-native-paper';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation, useRoute } from '@react-navigation/native';
+import ProfileMenuSheet from '../LSP/ProfileMenuSheet';
 
 const LspDashboardScreen = () => {
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const companyName = route?.params?.companyName ?? '';
+  const userMobile = route?.params?.mobileNumber ?? null;
+  const userEmail = route?.params?.email ?? null;
 
   const [activeTenders, setActiveTenders] = useState([]);
-  const [threePLList, setThreePLList] = useState([]);
+  const [pendingTenders, setPendingTenders] = useState([]);
+  const [completedTenders, setCompletedTenders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTenderId, setSelectedTenderId] = useState(null);
+  const profileMenuRef = useRef(null);
 
-  const fetchData = async () => {
-    try {
-      const res3pl = await fetch('http://10.0.2.2:9090/users/3pl');
-      if (!res3pl.ok) throw new Error('Failed to fetch 3PLs');
-      const threePLData = await res3pl.json();
-      setThreePLList(threePLData);
-
-      const tenderPromises = threePLData.map(async (company) => {
-        const res = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            companyName: company.companyName,
-            status: 'Active',
-          }),
-        });
-
-        if (!res.ok) return [];
-
-        const tenders = await res.json();
-        return tenders.map((tender) => ({
-          ...tender,
-          companyName: company.companyName,
-        }));
-      });
-
-      const allTendersNested = await Promise.all(tenderPromises);
-      const allTenders = allTendersNested.flat();
-      setActiveTenders(allTenders);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Something went wrong. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  console.log('Company Name in Dashboard:', companyName);
+  console.log('User Mobile:', userMobile);
+  console.log('User Email:', userEmail);
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res3pl = await fetch('http://10.0.2.2:9090/users/3pl');
+        const threePLData = await res3pl.json();
+
+        let active = [];
+        let pending = [];
+        let completed = [];
+
+        for (const company of threePLData) {
+          const activeRes = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: company.companyName,
+              status: 'Active',
+            }),
+          });
+          if (activeRes.ok) {
+            const activeData = await activeRes.json();
+            active = active.concat(
+              activeData.map((tender) => ({ ...tender, companyName: company.companyName }))
+            );
+          }
+
+          const pendingRes = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: company.companyName,
+              status: 'Pending',
+            }),
+          });
+          if (pendingRes.ok) {
+            const pendingData = await pendingRes.json();
+            pending = pending.concat(
+              pendingData.map((tender) => ({ ...tender, companyName: company.companyName }))
+            );
+          }
+
+          const completedRes = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: company.companyName,
+              status: 'Completed',
+            }),
+          });
+          if (completedRes.ok) {
+            const completedData = await completedRes.json();
+            completed = completed.concat(
+              completedData.map((tender) => ({ ...tender, companyName: company.companyName }))
+            );
+          }
+        }
+
+        setActiveTenders(active);
+        setPendingTenders(pending);
+        setCompletedTenders(completed);
+
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
+      }
+    };
+
     fetchData();
   }, []);
 
-  const DashboardStatCard = ({ icon, label, value, bgColor }) => (
-    <LinearGradient colors={[bgColor, '#1D3557']} style={styles.statCard}>
-      <Icon name={icon} size={36} color="#fff" />
-      <View style={{ marginLeft: 16 }}>
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-    </LinearGradient>
-  );
-
-  const renderTenderItem = ({ item }) => {
-    const isSelected = selectedTenderId === item.id;
-    return (
-      <TouchableOpacity
-        onPress={() => setSelectedTenderId(isSelected ? null : item.id)}
-        activeOpacity={0.8}
-      >
-        <Card style={[styles.card, isSelected && styles.cardSelected]} elevation={3}>
-          <Card.Content>
-            <View style={styles.tenderHeader}>
-              <Text style={styles.title}>Tender #{item.tenderNo}</Text>
-              <View style={styles.companyBadge}>
-                <Icon name="domain" size={16} color="#fff" />
-                <Text style={styles.companyName}>{item.companyName}</Text>
-              </View>
-            </View>
-            <Text style={styles.detail}>{item.sourceLocation} → {item.destinationLocation}</Text>
-            {isSelected && (
-              <View style={styles.expanded}>
-                <Text style={styles.detail}><Text style={styles.bold}>Pickup:</Text> {item.pickupDate}</Text>
-                <Text style={styles.detail}><Text style={styles.bold}>Drop:</Text> {item.dropDate}</Text>
-                <Text style={styles.detail}><Text style={styles.bold}>Weight:</Text> {item.weight} kg</Text>
-                <Text style={styles.detail}><Text style={styles.bold}>Instructions:</Text> {item.specialInstructions || 'None'}</Text>
-                <Text style={styles.detail}><Text style={styles.bold}>Price:</Text> ₹{item.tenderPrice}</Text>
-                <Text style={styles.detail}><Text style={styles.bold}>Created:</Text> {new Date(item.createdAt).toLocaleString()}</Text>
-              </View>
-            )}
-          </Card.Content>
-        </Card>
-      </TouchableOpacity>
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', onPress: () => navigation.navigate('Login') },
+      ],
+      { cancelable: true }
     );
   };
 
-  const render3PLItem = ({ item }) => (
-    <Card style={styles.companyCard} elevation={2}>
-      <Card.Content>
-        <Text style={styles.companyTitle}>{item.companyName}</Text>
-        <View style={styles.infoRow}>
-          <Icon name="email-outline" size={18} color="#1D3557" />
-          <Text style={styles.detail}> {item.email}</Text>
+  const renderTenderItem = ({ item }) => (
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate('LSPTenderDetails', {
+          tender: { ...item, companyName: companyName },
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <View style={styles.tenderItem}>
+        <Text style={styles.tenderTitle}>Tender #{item.tenderNo || 'N/A'}</Text>
+        <View style={styles.tenderRow}>
+          <Icon name="calendar" size={18} color="#1D3557" />
+          <Text style={styles.tenderInfo}>Pickup: {item.pickupDate || 'N/A'}</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Icon name="phone-outline" size={18} color="#1D3557" />
-          <Text style={styles.detail}> {item.mobileNumber}</Text>
+        <View style={styles.tenderRow}>
+          <Icon name="calendar-check" size={18} color="#1D3557" />
+          <Text style={styles.tenderInfo}>Drop: {item.dropDate || 'N/A'}</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Icon name="map-marker-outline" size={18} color="#1D3557" />
-          <Text style={styles.detail}> {item.location || 'N/A'}</Text>
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel' },
-      { text: 'Logout', onPress: () => console.log('Logging out...') }
-    ]);
-  };
-
-  return (
-    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
-      <View style={styles.topBar}>
-        <Text style={styles.dashboardTitle}>LSP Dashboard</Text>
-        <View style={styles.iconRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')} activeOpacity={0.7}>
-            <Icon name="account-circle" size={28} color="#fff" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} activeOpacity={0.7}>
-            <Icon name="cog" size={28} color="#fff" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
-            <Icon name="logout" size={28} color="#fff" style={styles.icon} />
-          </TouchableOpacity>
+        <View style={styles.tenderRow}>
+          <Icon name="currency-inr" size={18} color="#1D3557" />
+          <Text style={styles.tenderInfo}>Price: ₹{item.tenderPrice || 'N/A'}</Text>
         </View>
       </View>
+    </TouchableOpacity>
+  );
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1D3557" />
+      <View style={styles.header}>
+        <Text style={styles.headerText}>LSP Dashboard</Text>
+        <TouchableOpacity onPress={() => profileMenuRef.current?.open()} activeOpacity={0.7}>
+          <Icon name="account-circle" size={28} color="#fff" style={styles.icon} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.statsContainer}>
-          <DashboardStatCard icon="clipboard-list" label="Active Tenders" value={activeTenders.length} bgColor="blue" />
-          <DashboardStatCard icon="warehouse" label="3PL Companies" value={threePLList.length} bgColor="#2a9d8f" />
+          <View style={styles.statCard}>
+            <Icon name="truck-fast-outline" size={28} color="#1D3557" />
+            <Text style={styles.statNumber}>{activeTenders.length}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Icon name="truck-fast-outline" size={28} color="#1D3557" />
+            <Text style={styles.statNumber}>{pendingTenders.length}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Icon name="check-circle-outline" size={28} color="#1D3557" />
+            <Text style={styles.statNumber}>{completedTenders.length}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Active Tenders</Text>
+        <Text style={styles.subHeading}>Active Tenders</Text>
         {loading ? (
-          <ActivityIndicator size="large" color="#fff" style={{ marginTop: 40 }} />
-        ) : activeTenders.length > 0 ? (
+          <ActivityIndicator size="large" color="#1D3557" />
+        ) : (
           <FlatList
             data={activeTenders}
-            keyExtractor={(item) => `tender-${item.id}`}
             renderItem={renderTenderItem}
+            keyExtractor={(item) => item.id?.toString()}
+            contentContainerStyle={styles.listContainer}
             scrollEnabled={false}
-            contentContainerStyle={{ paddingBottom: 16 }}
           />
-        ) : (
-          <Text style={styles.noData}>No active tenders found.</Text>
-        )}
-
-        <View style={styles.divider} />
-
-        <Text style={styles.sectionTitle}>3PL Companies</Text>
-        {loading ? (
-          <ActivityIndicator size="large" color="#fff" style={{ marginTop: 40 }} />
-        ) : threePLList.length > 0 ? (
-          <FlatList
-            data={threePLList}
-            keyExtractor={(item, index) => `3pl-${index}`}
-            renderItem={render3PLItem}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          />
-        ) : (
-          <Text style={styles.noData}>No 3PL companies found.</Text>
         )}
       </ScrollView>
-    </LinearGradient>
+
+      <ProfileMenuSheet
+        ref={profileMenuRef}
+        onNavigate={(screen, params) => {
+          profileMenuRef.current?.close();
+          navigation.navigate(screen, params);
+        }}
+        onLogout={() => {
+          profileMenuRef.current?.close();
+          handleLogout();
+        }}
+        userMobile={userMobile}
+        userEmail={userEmail}
+      />
+    </View>
   );
 };
 
+export default LspDashboardScreen;
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 60,
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F4F8',
   },
-  topBar: {
+  header: {
+    backgroundColor: '#1D3557',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 15 : 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(4, 4, 4, 0.25)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
   },
-  dashboardTitle: {
-    marginTop: 30,
-    fontSize: 28,
-    fontWeight: '900',
+  headerText: {
     color: '#fff',
-    letterSpacing: 1.2,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    marginTop: 30,
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   icon: {
     marginLeft: 20,
+  },
+  scrollContainer: {
+    padding: 20,
+    paddingBottom: 100,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -234,112 +238,58 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    flexDirection: 'row',
+    backgroundColor: '#A8DADC',
+    marginHorizontal: 5,
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
-    paddingVertical: 22,
-    paddingHorizontal: 20,
-    marginHorizontal: 8,
-    borderRadius: 16,
-    elevation: 4,
   },
-  statValue: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: '#fff' ,
+  statNumber: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1D3557',
+    marginTop: 10,
   },
   statLabel: {
     fontSize: 14,
-    color: '#f0f0f0',
-    marginTop: 6,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 14,
-  },
-  noData: {
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: 17,
-    marginVertical: 20,
-    fontStyle: 'italic',
-  },
-  card: {
-    marginBottom: 14,
-    backgroundColor: '#ffffffee',
-    borderRadius: 14,
-  },
-  cardSelected: {
-    borderColor: 'blue',
-    borderWidth: 2,
-  },
-  tenderHeader: {
-    marginBottom: 8,
-  },
-  companyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#457B9D',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    marginTop: 6,
-  },
-  companyName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
-    marginLeft: 6,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
     color: '#1D3557',
   },
-  detail: {
-    fontSize: 14,
-    color: '#2a2a2a',
-    marginBottom: 4,
-    lineHeight: 20,
+  subHeading: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1D3557',
+    marginBottom: 10,
   },
-  expanded: {
-    marginTop: 10,
-    backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 12,
-    elevation: 2,
+  listContainer: {
+    paddingBottom: 20,
   },
-  bold: {
-    fontWeight: '700',
-  },
-  companyCard: {
+  tenderItem: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
-  companyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+  tenderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#1D3557',
-    marginBottom: 6,
+    marginBottom: 10,
   },
-  infoRow: {
+  tenderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(243, 239, 239, 0.3)',
-    marginVertical: 28,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#ccc',
-    marginVertical: 8,
+  tenderInfo: {
+    marginLeft: 8,
+    fontSize: 15,
+    color: '#333',
   },
 });
-
-export default LspDashboardScreen;

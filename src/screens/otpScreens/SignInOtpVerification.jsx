@@ -5,6 +5,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const SignInOtpVerification = ({ route, navigation }) => {
   const { method, input } = route.params;
+
   const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(60);
 
@@ -78,10 +79,13 @@ const SignInOtpVerification = ({ route, navigation }) => {
     if (response.status === 200 && role && companyName) {
       Alert.alert("Success", "OTP verified. You are logged in!");
 
+        const mobileNumber = method === "mobile" ? input : null;
+        const email = method === "email" ? input : null;
+
       if (role === "LSP") {
-        navigation.navigate("LspDashboardScreen", { companyName });
+        navigation.navigate("LspDashboardScreen", { companyName, mobileNumber, email });
       } else if (role === "THREE_PL") {
-        navigation.navigate("Dashboard", { companyName });
+        navigation.navigate("Dashboard", { companyName, mobileNumber, email  });
       } else {
         Alert.alert("Error", `Unrecognized role: ${role}`);
       }
