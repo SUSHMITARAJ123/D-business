@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,18 @@ import {
   ScrollView,
   Platform,
   StatusBar,
+  LayoutAnimation,
+  UIManager,
+  RefreshControl, // ⬅️ Added for refresh
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfileMenuSheet from '../LSP/ProfileMenuSheet';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const LspDashboardScreen = () => {
   const navigation = useNavigation();
@@ -26,122 +34,151 @@ const LspDashboardScreen = () => {
   const [activeTenders, setActiveTenders] = useState([]);
   const [pendingTenders, setPendingTenders] = useState([]);
   const [completedTenders, setCompletedTenders] = useState([]);
+  const [inprocessTenders, setInprocessTenders] = useState([]);
+  const [expandedTenders, setExpandedTenders] = useState({});
+  const [selectedStatus, setSelectedStatus] = useState('Active');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); 
   const profileMenuRef = useRef(null);
 
-  console.log('Company Name in Dashboard:', companyName);
-  console.log('User Mobile:', userMobile);
-  console.log('User Email:', userEmail);
+  const uniqueByTenderNo = (tenders) => {
+    const map = new Map();
+    for (const tender of tenders) {
+      if (!map.has(tender.tenderNo)) {
+        map.set(tender.tenderNo, tender);
+      }
+    }
+    return Array.from(map.values());
+  };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res3pl = await fetch('http://10.0.2.2:9090/users/3pl');
-        const threePLData = await res3pl.json();
+  const fetchData = useCallback(async () => {
+    try {
+      if (!refreshing) setLoading(true); 
 
-        let active = [];
-        let pending = [];
-        let completed = [];
+      const res3pl = await fetch('http://10.0.2.2:9090/users/lsp');
+      const companies = await res3pl.json();
 
-        for (const company of threePLData) {
-          const activeRes = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+      let active = [], pending = [], completed = [], inprocess = [];
+
+      for (const company of companies) {
+        const statuses = ['Active', 'Pending', 'Completed', 'INPROCESS'];
+        for (const status of statuses) {
+          const res = await fetch('http://10.0.2.2:9090/api/lsp/responses/filter', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              companyName: company.companyName,
-              status: 'Active',
-            }),
+            body: JSON.stringify({ companyName: company.companyName, status }),
           });
-          if (activeRes.ok) {
-            const activeData = await activeRes.json();
-            active = active.concat(
-              activeData.map((tender) => ({ ...tender, companyName: company.companyName }))
-            );
-          }
 
-          const pendingRes = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              companyName: company.companyName,
-              status: 'Pending',
-            }),
-          });
-          if (pendingRes.ok) {
-            const pendingData = await pendingRes.json();
-            pending = pending.concat(
-              pendingData.map((tender) => ({ ...tender, companyName: company.companyName }))
-            );
-          }
+          if (res.ok) {
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const data = await res.json();
+              const mapped = data.map(tender => ({ ...tender, companyName: company.companyName }));
 
-          const completedRes = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              companyName: company.companyName,
-              status: 'Completed',
-            }),
-          });
-          if (completedRes.ok) {
-            const completedData = await completedRes.json();
-            completed = completed.concat(
-              completedData.map((tender) => ({ ...tender, companyName: company.companyName }))
-            );
+              if (status === 'Active') active = active.concat(mapped);
+              else if (status === 'Pending') pending = pending.concat(mapped);
+              else if (status === 'Completed') completed = completed.concat(mapped);
+              else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
+            }
           }
         }
-
-        setActiveTenders(active);
-        setPendingTenders(pending);
-        setCompletedTenders(completed);
-
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
       }
-    };
 
+      const inprocessMap = new Set(inprocess.map(t => t.tenderNo));
+      const filteredActive = active.filter(t => !inprocessMap.has(t.tenderNo));
+
+      setActiveTenders(uniqueByTenderNo(filteredActive));
+      setPendingTenders(uniqueByTenderNo(pending));
+      setCompletedTenders(uniqueByTenderNo(completed));
+      setInprocessTenders(uniqueByTenderNo(inprocess));
+    } catch (err) {
+      console.error('🔥 Error in fetchData:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [refreshing]);
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', onPress: () => navigation.navigate('Login') },
-      ],
-      { cancelable: true }
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', onPress: () => navigation.navigate('Login') },
+    ]);
+  };
+
+  const toggleExpand = (tenderNo) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedTenders(prev => ({
+      ...prev,
+      [tenderNo]: !prev[tenderNo],
+    }));
+  };
+
+  const renderTenderItem = ({ item }) => {
+    const isExpanded = expandedTenders[item.tenderNo];
+
+    return (
+      <TouchableOpacity onPress={() => toggleExpand(item.tenderNo)} activeOpacity={0.85}>
+        <View style={styles.tenderItem}>
+          <Text style={styles.tenderTitle}>Tender #{item.tenderNo}</Text>
+
+          <View style={styles.tenderRow}>
+            <Icon name="map-marker" size={18} color="#1D3557" />
+            <Text style={styles.tenderInfo}>
+              {item.sourceLocation} → {item.destinationLocation}
+            </Text>
+          </View>
+
+          {isExpanded && (
+            <>
+              <View style={styles.tenderRow}>
+                <Icon name="calendar" size={18} color="#1D3557" />
+                <Text style={styles.tenderInfo}>Pickup: {item.pickupDate}</Text>
+              </View>
+
+              <View style={styles.tenderRow}>
+                <Icon name="calendar-check" size={18} color="#1D3557" />
+                <Text style={styles.tenderInfo}>Drop: {item.dropDate}</Text>
+              </View>
+
+              <View style={styles.tenderRow}>
+                <Icon name="weight-kilogram" size={18} color="#1D3557" />
+                <Text style={styles.tenderInfo}>Weight: {item.weight} kg</Text>
+              </View>
+
+              <View style={styles.tenderRow}>
+                <Icon name="currency-inr" size={18} color="#1D3557" />
+                <Text style={styles.tenderInfo}>Price: ₹{item.tenderPrice}</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('LSPTenderDetails', { tender: item })}
+                style={styles.detailsButton}
+              >
+                <Text style={styles.detailsButtonText}>View Details</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
-  const renderTenderItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() =>
-        navigation.navigate('LSPTenderDetails', {
-          tender: { ...item, companyName: companyName },
-        })
-      }
-      activeOpacity={0.8}
-    >
-      <View style={styles.tenderItem}>
-        <Text style={styles.tenderTitle}>Tender #{item.tenderNo || 'N/A'}</Text>
-        <View style={styles.tenderRow}>
-          <Icon name="calendar" size={18} color="#1D3557" />
-          <Text style={styles.tenderInfo}>Pickup: {item.pickupDate || 'N/A'}</Text>
-        </View>
-        <View style={styles.tenderRow}>
-          <Icon name="calendar-check" size={18} color="#1D3557" />
-          <Text style={styles.tenderInfo}>Drop: {item.dropDate || 'N/A'}</Text>
-        </View>
-        <View style={styles.tenderRow}>
-          <Icon name="currency-inr" size={18} color="#1D3557" />
-          <Text style={styles.tenderInfo}>Price: ₹{item.tenderPrice || 'N/A'}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  const getCurrentTenders = () => {
+    if (selectedStatus === 'Active') return activeTenders;
+    if (selectedStatus === 'Pending') return pendingTenders;
+    if (selectedStatus === 'Completed') return completedTenders;
+    return inprocessTenders;
+  };
 
   return (
     <View style={styles.container}>
@@ -153,35 +190,62 @@ const LspDashboardScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Icon name="truck-fast-outline" size={28} color="#1D3557" />
-            <Text style={styles.statNumber}>{activeTenders.length}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Icon name="truck-fast-outline" size={28} color="#1D3557" />
-            <Text style={styles.statNumber}>{pendingTenders.length}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Icon name="check-circle-outline" size={28} color="#1D3557" />
-            <Text style={styles.statNumber}>{completedTenders.length}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
+          {['Active', 'Pending', 'Completed', 'Inprocess'].map((status, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setSelectedStatus(status)}
+              style={[
+                styles.statCard,
+                selectedStatus === status && styles.statCardSelected,
+              ]}
+            >
+              <Icon
+                name={
+                  status === 'Active'
+                    ? 'truck-fast-outline'
+                    : status === 'Pending'
+                    ? 'clock-outline'
+                    : status === 'Completed'
+                    ? 'check-circle-outline'
+                    : 'sync'
+                }
+                size={28}
+                color="#1D3557"
+              />
+              <Text style={styles.statNumber}>
+                {status === 'Active'
+                  ? activeTenders.length
+                  : status === 'Pending'
+                  ? pendingTenders.length
+                  : status === 'Completed'
+                  ? completedTenders.length
+                  : inprocessTenders.length}
+              </Text>
+              <Text style={styles.statLabel}>{status}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        <Text style={styles.subHeading}>Active Tenders</Text>
         {loading ? (
-          <ActivityIndicator size="large" color="#1D3557" />
+          <ActivityIndicator size="large" color="#1D3557" style={{ marginTop: 40 }} />
         ) : (
           <FlatList
-            data={activeTenders}
+            data={getCurrentTenders()}
+            keyExtractor={(item) => item.tenderNo?.toString()}
             renderItem={renderTenderItem}
-            keyExtractor={(item) => item.id?.toString()}
             contentContainerStyle={styles.listContainer}
-            scrollEnabled={false}
+            ListEmptyComponent={
+              <Text style={{ textAlign: 'center', marginTop: 20, color: 'gray' }}>
+                No {selectedStatus} tenders to display.
+              </Text>
+            }
           />
         )}
       </ScrollView>
@@ -204,6 +268,7 @@ const LspDashboardScreen = () => {
 };
 
 export default LspDashboardScreen;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -254,12 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1D3557',
   },
-  subHeading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1D3557',
-    marginBottom: 10,
-  },
   listContainer: {
     paddingBottom: 20,
   },
@@ -292,4 +351,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
   },
-});
+    detailsButton: {
+    backgroundColor: '#1D3557',
+    marginTop: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  detailsButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  statCardSelected: {
+    borderWidth: 2,
+    borderColor: '#1D3557',
+    backgroundColor: '#F1FAEE',
+  },
+
+}); 

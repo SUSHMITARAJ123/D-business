@@ -19,6 +19,8 @@ const OngoingTenderScreen = () => {
   const [tenders, setTenders] = useState([]);
   const [filteredTenders, setFilteredTenders] = useState([]);
   const [search, setSearch] = useState('');
+  
+  // console.log("company name",companyName);
 
   useEffect(() => {
     const fetchTenders = async () => {
@@ -28,6 +30,7 @@ const OngoingTenderScreen = () => {
           headers: {
             'Content-Type': 'application/json',
           },
+          
           body: JSON.stringify({
             companyName: companyName,
             status: 'ACTIVE',
@@ -62,34 +65,79 @@ const OngoingTenderScreen = () => {
   };
 
   const renderItem = ({ item }) => (
+  <TouchableOpacity
+    style={styles.card}
+    onPress={() => navigation.navigate('TenderDetails', { tender: item })}
+  >
+    <Text style={styles.title}>{item.tenderNo}</Text>
+
+    <View style={styles.row}>
+      <Text style={styles.label}>From:</Text>
+      <Text>{item.sourceLocation}</Text>
+    </View>
+
+    <View style={styles.row}>
+      <Text style={styles.label}>To:</Text>
+      <Text>{item.destinationLocation}</Text>
+    </View>
+
+    <View style={styles.row}>
+      <Text style={styles.label}>Pickup:</Text>
+      <Text>{item.pickupDate}</Text>
+    </View>
+
+    <View style={styles.row}>
+      <Text style={styles.label}>Drop:</Text>
+      <Text>{item.dropDate}</Text>
+    </View>
+
+    <View style={styles.row}>
+      <Text style={styles.label}>Price:</Text>
+      <Text style={{ fontWeight: 'bold' }}>₹{item.tenderPrice}</Text>
+    </View>
+
+    <Text style={styles.status}>Status: {item.status}</Text>
+
+    {/* Bids Section */}
     <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('TenderDetails', { tender: item })}
+      style={styles.bidSection}
+    onPress={() =>
+  navigation.navigate('BidDetail', {
+    // tender: {
+    //   companyName: item.companyName,
+    //   tenderNo: item.tenderNo,
+    // },
+     tender: item 
+  })
+}
     >
-      <Text style={styles.title}>{item.tenderNo}</Text>
-      <View style={styles.row}>
-        <Text style={styles.label}>From:</Text>
-        <Text>{item.sourceLocation}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>To:</Text>
-        <Text>{item.destinationLocation}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Pickup:</Text>
-        <Text>{item.pickupDate}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Drop:</Text>
-        <Text>{item.dropDate}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Price:</Text>
-        <Text style={{ fontWeight: 'bold' }}>₹{item.tenderPrice}</Text>
-      </View>
-      <Text style={styles.status}>Status: {item.status}</Text>
-    </TouchableOpacity>
-  );
+      <Text style={styles.bidTitle}>Bid Details:</Text>
+      {item.selectedBid ? (
+        <>
+          <View style={styles.row}>
+            <Text style={styles.label}>LSP:</Text>
+            <Text>{item.selectedBid.lspName}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Bid Price:</Text>
+            <Text>₹{item.selectedBid.price}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>ETA:</Text>
+            <Text>{item.selectedBid.eta}</Text>
+          </View>
+        </>
+       ) : item.bids && item.bids.length > 0 ? (
+    <Text style={styles.bidCount}>
+      {item.bids.length} bid{item.bids.length > 1 ? 's' : ''} received. Tap to view.
+    </Text>
+  ) : (
+    <Text style={styles.noBidText}>Tap to view bid.</Text>
+  )}
+</TouchableOpacity>
+  </TouchableOpacity>
+);
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -183,10 +231,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'blue',
   },
+  bidSection: {
+    marginTop: 12,
+    backgroundColor: '#F0F4F8',
+    padding: 10,
+    borderRadius: 10,
+  },
+  bidTitle: {
+    fontWeight: '700',
+    marginBottom: 6,
+    color: '#1D3557',
+  },
+  noBidText: {
+    fontStyle: 'italic',
+    color: '#888',
+  },
   noData: {
     textAlign: 'center',
     marginTop: 20,
     color: '#F1FAEE',
     fontSize: 16,
   },
+
+  bidCount: {
+  fontStyle: 'italic',
+  color: '#1D3557',
+  fontWeight: '600',
+},
 });

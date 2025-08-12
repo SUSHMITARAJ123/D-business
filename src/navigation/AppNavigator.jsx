@@ -21,6 +21,12 @@ import ProfileScreen from "../screens/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import LSPTenderDetails from "../screens/LSP/LSPTenderDetails";
 import MyBidsScreen from "../screens/LSP/MyBidsScreen";
+import NotificationsScreen from '../screens/LSP/NotificationsScreen';
+import BidsNotificationScreen from '../screens/BidsNotificationScreen';
+import BidResultScreen from '../screens/BidResultScreen';
+import BidDetailScreen from "../screens/BidDetailScreen";
+import LSPBidDetailScreen from "../screens/LSP/LSPBidDetailScreen";
+
 
 
 const Stack = createStackNavigator();
@@ -48,6 +54,12 @@ const AppNavigator = () => {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="LSPTenderDetails" component={LSPTenderDetails} />
       <Stack.Screen name="MyBids" component={MyBidsScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="BidsNotificationScreen" component={BidsNotificationScreen} options={{ title: 'Bids Notifications' }} />
+      <Stack.Screen name="BidResult" component={BidResultScreen} />
+      <Stack.Screen name="BidDetail" component={BidDetailScreen} />
+      <Stack.Screen name="LSPBidDetail" component={LSPBidDetailScreen} />
+ 
 
 
 

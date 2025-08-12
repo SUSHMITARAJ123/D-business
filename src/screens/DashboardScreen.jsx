@@ -98,9 +98,10 @@ const DashboardScreen = ({ navigation }) => {
           Welcome, {companyName}
         </Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Icon name="notifications" size={26} color={themeStyles.text} />
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('BidsNotificationScreen')}>
+  <Icon name="notifications" size={26} color={themeStyles.text} />
+</TouchableOpacity>
+
           <TouchableOpacity>
             <TouchableOpacity onPress={() => {
               setMenuVisible(false);

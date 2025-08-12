@@ -1,4 +1,3 @@
-// TenderDetailsScreen.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -7,17 +6,21 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  ScrollView
+  ScrollView,
+  Platform
 } from 'react-native';
 import { Card } from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function TenderDetailsScreen({ route, navigation }) {
   const { tender } = route.params || {};
 
   const [bidPrice, setBidPrice] = useState('');
-  const [eta, setEta] = useState('');
+  const [eta, setEta] = useState(null); // store Date object
+  const [message, setMessage] = useState('');
+  const [showEtaPicker, setShowEtaPicker] = useState(false);
 
   const handlePlaceBid = async () => {
     if (!bidPrice || !eta) {
@@ -25,28 +28,49 @@ export default function TenderDetailsScreen({ route, navigation }) {
       return;
     }
 
-  //   try {
-  //     const res = await fetch('http://10.0.2.2:9090/lsp/bids/place', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         tenderId: tender.id,
-  //         bidPrice: bidPrice,
-  //         eta: eta,
-  //       }),
-  //     });
+    try {
+      const estimatedArrivalDate = eta.toISOString().split('T')[0];
 
-    //   if (res.ok) {
-    //     Alert.alert('Success', 'Bid placed successfully!', [
-    //       { text: 'OK', onPress: () => navigation.goBack() },
-    //     ]);
-    //   } else {
-    //     Alert.alert('Error', 'Failed to place bid. Try again.');
-    //   }
-    // } catch (err) {
-    //   console.error(err);
-    //   Alert.alert('Error', 'Something went wrong.');
-    // }
+      const payload = {
+        estimatedArrivalDate,
+        bidPrice: parseFloat(bidPrice),
+        lspMessage: message || '',
+      };
+
+      const response = await fetch(
+        `http://10.0.2.2:9090/api/lsp/responses/reply/${tender.tenderNo}?companyName=${encodeURIComponent(
+          tender.companyName
+        )}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (response.ok) {
+        Alert.alert('Success', 'Your bid has been placed.', [
+          {
+            text: 'OK',
+            onPress: () =>
+              navigation.navigate('LSPBidDetail', {
+                tender: {
+                  tenderNo: tender.tenderNo,
+                  companyName: tender.companyName,
+                },
+              }),
+          },
+        ]);
+      } else {
+        const error = await response.text();
+        Alert.alert('Error', `Failed to place bid: ${error}`);
+      }
+    } catch (err) {
+      console.error('Bid error:', err);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    }
   };
 
   return (
@@ -78,16 +102,43 @@ export default function TenderDetailsScreen({ route, navigation }) {
           />
 
           <Text style={styles.inputLabel}>Estimated Time of Arrival (ETA)</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowEtaPicker(true)}
+          >
+            <Icon name="calendar" size={20} color="#1D3557" />
+            <Text style={styles.dateButtonText}>
+              {eta ? eta.toISOString().split('T')[0] : 'Select ETA Date'}
+            </Text>
+          </TouchableOpacity>
+
+          {showEtaPicker && (
+            <DateTimePicker
+              value={eta || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowEtaPicker(false);
+                if (selectedDate) {
+                  setEta(selectedDate);
+                }
+              }}
+            />
+          )}
+
+          <Text style={styles.inputLabel}>Message</Text>
           <TextInput
-            style={styles.input}
-            placeholder="e.g., 2 days"
+            style={[styles.input, { height: 80 }]}
+            placeholder="Add message"
             placeholderTextColor="#aaa"
-            value={eta}
-            onChangeText={setEta}
+            multiline
+            numberOfLines={4}
+            value={message}
+            onChangeText={setMessage}
           />
 
           <TouchableOpacity style={styles.button} onPress={handlePlaceBid}>
-            <Icon name="send" size={22} color="#fff" />
+            <Icon name="send" size={12} color="#fff" />
             <Text style={styles.buttonText}>Place Bid</Text>
           </TouchableOpacity>
         </View>
@@ -128,6 +179,19 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     marginBottom: 20,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f6f6ff',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  dateButtonText: {
+    marginLeft: 10,
+    color: '#1D3557',
+    fontSize: 16,
   },
   button: {
     flexDirection: 'row',

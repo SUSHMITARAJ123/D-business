@@ -34,7 +34,7 @@ const CreateTenderScreen = ({ navigation }) => {
 const [showDatePicker, setShowDatePicker] = useState({
   visible: false,
   field: '',
-  minimumDate: null,  // added to hold the min selectable date
+  minimumDate: null,  
 });
 
   const [errors, setErrors] = useState({});
@@ -235,7 +235,7 @@ const renderDropDateInput = () => {
 
                 <View style={styles.section}>
                   {renderInput('Weight (kg)', 'weight', 'scale', 'numeric')}
-                  {renderInput('Tender Price (INR)', 'tenderPrice', 'attach-money', 'numeric')}
+                  {renderInput('Tender Price ₹', 'tenderPrice', 'attach-money', 'numeric')}
                   {renderInput('Special Instructions', 'specialInstructions', 'info')}
                 </View>
                 <TouchableOpacity style={styles.buttonPrimary} onPress={() => setIsReviewing(true)}>
@@ -255,7 +255,7 @@ const renderDropDateInput = () => {
 
                 <View style={{ marginTop: 20 }}>
                   <TouchableOpacity style={styles.buttonPrimary} onPress={handleSubmit}>
-                    <Text style={styles.buttonText}>Submit Tender</Text>
+                    <Text style={styles.buttonText}>Broadcast Tender</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.buttonPrimary, { backgroundColor: '#999', marginTop: 10 }]}
