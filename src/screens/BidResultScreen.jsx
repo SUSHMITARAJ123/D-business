@@ -1,89 +1,50 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
-const BidResultScreen = ({ route }) => {
-  const { tenderNo, acceptedBid, rejectedBids } = route.params;
+export default function TenderResultScreen({ route, navigation }) {
+  const { tender, bids, myLspName } = route.params;
+  const myBidIndex = bids.findIndex(b => b.lspCompanyName === myLspName);
+ const confirmedIndex = bids.findIndex(b => b.status === 'ACCEPTED'); 
+  const isWinner = confirmedIndex === myBidIndex;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Result for Tender {tenderNo}</Text>
-
-      <View style={styles.acceptedCard}>
-        <Text style={styles.label}>✅ Accepted Bid:</Text>
-        <Text style={styles.name}>{acceptedBid.lspName}</Text>
-        <Text style={styles.price}>₹{acceptedBid.price}</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Tender Result</Text>
       </View>
 
-      <Text style={styles.rejectedTitle}>❌ Rejected Bids:</Text>
-      <FlatList
-        data={rejectedBids}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.rejectedCard}>
-            <Text style={styles.rejectedName}>{item.lspName}</Text>
-            <Text style={styles.rejectedPrice}>₹{item.price || 'N/A'}</Text>
+      <ScrollView style={styles.content}>
+        <Text style={styles.info}>Tender No: {tender.tenderNo}</Text>
+        <Text style={styles.info}>Source: {tender.sourceLocation}</Text>
+        <Text style={styles.info}>Destination: {tender.destinationLocation}</Text>
+
+        {bids.map((bid, index) => (
+          <View
+            key={index}
+            style={[
+              styles.bidRow,
+              index === confirmedIndex ? styles.winner : styles.loser
+            ]}
+          >
+            <Text>{bid.lspCompanyName}</Text>
+            <Text>₹{bid.bidPrice}</Text>
+            <Text>{index === confirmedIndex ? '✅ Accepted' : '❌ Rejected'}</Text>
           </View>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
-};
-
-export default BidResultScreen;
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#F9FAFB',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 20,
-    color: '#1D3557',
-  },
-  acceptedCard: {
-    backgroundColor: '#D1FAE5',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#065F46',
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#047857',
-  },
-  price: {
-    fontSize: 16,
-    color: '#047857',
-    marginTop: 4,
-  },
-  rejectedTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 10,
-  },
-  rejectedCard: {
-    backgroundColor: '#FEE2E2',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  rejectedName: {
-    fontSize: 16,
-    color: '#991B1B',
-  },
-  rejectedPrice: {
-    fontSize: 16,
-    color: '#991B1B',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { backgroundColor: '#1D3557', padding: 16, alignItems: 'center' },
+  headerText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  content: { padding: 16 },
+  info: { marginBottom: 4, fontSize: 14 },
+  bidRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 10, borderBottomWidth: 1, borderColor: '#ccc' },
+  winner: { backgroundColor: '#d4edda' },
+  loser: { backgroundColor: '#f8d7da' },
+  assignBtn: { backgroundColor: '#1D3557', padding: 12, marginTop: 20, borderRadius: 8, alignItems: 'center' },
+  assignText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

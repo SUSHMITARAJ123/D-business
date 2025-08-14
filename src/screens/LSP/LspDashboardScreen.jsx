@@ -12,11 +12,12 @@ import {
   StatusBar,
   LayoutAnimation,
   UIManager,
-  RefreshControl, // ⬅️ Added for refresh
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfileMenuSheet from '../LSP/ProfileMenuSheet';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -27,7 +28,6 @@ const LspDashboardScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const companyName = route?.params?.companyName ?? '';
   const userMobile = route?.params?.mobileNumber ?? null;
   const userEmail = route?.params?.email ?? null;
 
@@ -38,7 +38,7 @@ const LspDashboardScreen = () => {
   const [expandedTenders, setExpandedTenders] = useState({});
   const [selectedStatus, setSelectedStatus] = useState('Active');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); 
+  const [refreshing, setRefreshing] = useState(false);
   const profileMenuRef = useRef(null);
 
   const uniqueByTenderNo = (tenders) => {
@@ -53,33 +53,41 @@ const LspDashboardScreen = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      if (!refreshing) setLoading(true); 
+      if (!refreshing) setLoading(true);
 
-      const res3pl = await fetch('http://10.0.2.2:9090/users/lsp');
-      const companies = await res3pl.json();
+      const storedCompanyName = await AsyncStorage.getItem('companyName');
+      if (!storedCompanyName) {
+        console.warn('⚠ No companyName found in AsyncStorage — skipping API call.');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
+      console.log('📦 Fetching tenders for:', storedCompanyName);
+
+      const statuses = ['Active', 'Pending', 'Completed', 'INPROCESS'];
       let active = [], pending = [], completed = [], inprocess = [];
 
-      for (const company of companies) {
-        const statuses = ['Active', 'Pending', 'Completed', 'INPROCESS'];
-        for (const status of statuses) {
-          const res = await fetch('http://10.0.2.2:9090/api/lsp/responses/filter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ companyName: company.companyName, status }),
-          });
+      for (const status of statuses) {
+        const res = await fetch('http://10.0.2.2:9090/api/lsp/responses/filter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: storedCompanyName, status }),
+        });
 
-          if (res.ok) {
-            const contentType = res.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-              const data = await res.json();
-              const mapped = data.map(tender => ({ ...tender, companyName: company.companyName }));
+        if (res.ok) {
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await res.json();
+            const mapped = data.map(tender => ({
+              ...tender,
+              companyName: storedCompanyName
+            }));
 
-              if (status === 'Active') active = active.concat(mapped);
-              else if (status === 'Pending') pending = pending.concat(mapped);
-              else if (status === 'Completed') completed = completed.concat(mapped);
-              else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
-            }
+            if (status === 'Active') active = active.concat(mapped);
+            else if (status === 'Pending') pending = pending.concat(mapped);
+            else if (status === 'Completed') completed = completed.concat(mapped);
+            else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
           }
         }
       }
@@ -269,7 +277,6 @@ const LspDashboardScreen = () => {
 
 export default LspDashboardScreen;
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -351,7 +358,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
   },
-    detailsButton: {
+  detailsButton: {
     backgroundColor: '#1D3557',
     marginTop: 12,
     paddingVertical: 8,
@@ -367,5 +374,4 @@ const styles = StyleSheet.create({
     borderColor: '#1D3557',
     backgroundColor: '#F1FAEE',
   },
-
-}); 
+});

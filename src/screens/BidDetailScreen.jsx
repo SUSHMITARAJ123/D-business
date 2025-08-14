@@ -11,8 +11,10 @@ import {
   ToastAndroid, 
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function BidDetailScreen({ route }) {
+  const navigation = useNavigation();
   const { tender } = route.params;
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,15 @@ export default function BidDetailScreen({ route }) {
     } else {
       Alert.alert('Confirmed', 'Bid confirmed successfully!');
     }
-  };
+  
+
+   navigation.navigate('BidResult', {
+    tender,
+    bids,
+    confirmedIndex: index,
+  });
+};
+
 
   if (loading) {
     return (

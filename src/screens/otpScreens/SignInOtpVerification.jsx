@@ -2,6 +2,8 @@ import React, { useRef,  useState, useEffect } from "react";
 import { View, Text, TextInput, Pressable, Alert, StyleSheet, Keyboard,} from "react-native";
 import Icon from 'react-native-vector-icons/FontAwesome'; 
 import LinearGradient from 'react-native-linear-gradient'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const SignInOtpVerification = ({ route, navigation }) => {
   const { method, input } = route.params;
@@ -78,7 +80,7 @@ const SignInOtpVerification = ({ route, navigation }) => {
 
     if (response.status === 200 && role && companyName) {
       Alert.alert("Success", "OTP verified. You are logged in!");
-
+        await AsyncStorage.setItem('companyName', companyName);
         const mobileNumber = method === "mobile" ? input : null;
         const email = method === "email" ? input : null;
 

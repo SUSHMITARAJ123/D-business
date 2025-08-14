@@ -11,6 +11,8 @@ import {
   ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const LoginScreen = ({ navigation }) => {
   const [method, setMethod] = useState('mobile');
@@ -39,22 +41,21 @@ const LoginScreen = ({ navigation }) => {
       const text = await response.text();
       console.log('Login response:', text);
 
-      if (response.ok && text.includes('Login successful')) {
-        const roleMatch = text.match(/Welcome (\w+)!/);
-        const companyMatch = text.match(/Company: (.+)$/);
+      if (response.status === 200 && role && companyName) {
+  Alert.alert("Success", "OTP verified. You are logged in!");
 
-        const role = roleMatch?.[1]?.toUpperCase();
-        const companyName = companyMatch?.[1]?.trim();
+  await AsyncStorage.setItem('companyName', companyName);
 
-        if (role === 'LSP') {
-          navigation.navigate('LspDashboardScreen', { companyName });
-        } else if (role === 'THREE_PL') {
-          navigation.navigate('Dashboard', { companyName });
-        } else {
-          Alert.alert('Success', 'Login successful, but unknown role.');
-        }
-      } else {
-        Alert.alert('Login Failed', text || 'Invalid credentials');
+  const mobileNumber = method === "mobile" ? input : null;
+  const email = method === "email" ? input : null;
+
+  if (role === "LSP") {
+    navigation.navigate("LspDashboardScreen", { companyName, mobileNumber, email });
+  } else if (role === "THREE_PL") {
+    navigation.navigate("Dashboard", { companyName, mobileNumber, email });
+  } else {
+    Alert.alert("Error", `Unrecognized role: ${role}`);
+  }
       }
     } else {
       // Mobile login

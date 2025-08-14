@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
 import {
   View,
@@ -18,17 +19,25 @@ export default function TenderDetailsScreen({ route, navigation }) {
   const { tender } = route.params || {};
 
   const [bidPrice, setBidPrice] = useState('');
-  const [eta, setEta] = useState(null); // store Date object
+  const [eta, setEta] = useState(null);
   const [message, setMessage] = useState('');
   const [showEtaPicker, setShowEtaPicker] = useState(false);
 
-  const handlePlaceBid = async () => {
+const handlePlaceBid = async () => {
     if (!bidPrice || !eta) {
       Alert.alert('Validation', 'Please enter bid price and ETA.');
       return;
     }
 
     try {
+      const storedCompanyName = await AsyncStorage.getItem('companyName');
+      const companyNameToUse = storedCompanyName || tender.companyName;
+
+      if (!companyNameToUse) {
+        Alert.alert('Error', 'No company name found. Please log in again.');
+        return;
+      }
+
       const estimatedArrivalDate = eta.toISOString().split('T')[0];
 
       const payload = {
@@ -37,20 +46,16 @@ export default function TenderDetailsScreen({ route, navigation }) {
         lspMessage: message || '',
       };
 
-      const response = await fetch(
-        `http://10.0.2.2:9090/api/lsp/responses/reply/${tender.tenderNo}?companyName=${encodeURIComponent(
-          tender.companyName
-        )}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const url = `http://10.0.2.2:9090/api/lsp/responses/reply/${tender.tenderNo}?companyName=${encodeURIComponent(companyNameToUse)}`;
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
       if (response.ok) {
+        console.log("✅ Bid placed successfully:", response);
         Alert.alert('Success', 'Your bid has been placed.', [
           {
             text: 'OK',
@@ -58,7 +63,7 @@ export default function TenderDetailsScreen({ route, navigation }) {
               navigation.navigate('LSPBidDetail', {
                 tender: {
                   tenderNo: tender.tenderNo,
-                  companyName: tender.companyName,
+                  companyName: companyNameToUse,
                 },
               }),
           },
@@ -68,10 +73,11 @@ export default function TenderDetailsScreen({ route, navigation }) {
         Alert.alert('Error', `Failed to place bid: ${error}`);
       }
     } catch (err) {
-      console.error('Bid error:', err);
+      console.error('🔥 Bid error:', err);
       Alert.alert('Error', 'An unexpected error occurred.');
     }
   };
+
 
   return (
     <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
