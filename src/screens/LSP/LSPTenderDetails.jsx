@@ -79,7 +79,7 @@ export default function TenderDetailsScreen({ route, navigation }) {
         <Text style={styles.title}>{tender.tenderNo}</Text>
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={styles.detail}><Text style={styles.bold}>Company:</Text> {tender.companyName}</Text>
+            <Text style={styles.detail}><Text style={styles.bold}>Company:</Text> {tender.createdByCompanyName}</Text>
             <Text style={styles.detail}><Text style={styles.bold}>From:</Text> {tender.sourceLocation}</Text>
             <Text style={styles.detail}><Text style={styles.bold}>To:</Text> {tender.destinationLocation}</Text>
             <Text style={styles.detail}><Text style={styles.bold}>Pickup:</Text> {tender.pickupDate}</Text>
