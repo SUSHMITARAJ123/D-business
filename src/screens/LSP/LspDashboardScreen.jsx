@@ -51,6 +51,30 @@ const LspDashboardScreen = () => {
     return Array.from(map.values());
   };
 
+//   const fetchBidStatus = async (tenderNo, lspCompanyName) => {
+// try {
+// const res = await fetch('http://10.0.2.2:9090/3pl/confirm-lsp', {
+// method: 'POST',
+// headers: { 'Content-Type': 'application/json' },
+// body: JSON.stringify({ tenderNo, lspCompanyName }),
+// });
+
+
+// if (res.ok) {
+// const msg = await res.text();
+// if (msg.includes('LSP response confirmed successfully')) {
+// return 'ACCEPTED';
+// } else if (msg.includes('Failed')) {
+// return 'REJECTED';
+// }
+// }
+// return 'PENDING'; 
+// } catch (err) {
+// console.error(' Error fetching bid status:', err);
+// return 'PENDING';
+// }
+// };
+
   const fetchData = useCallback(async () => {
     try {
       if (!refreshing) setLoading(true);
@@ -63,7 +87,7 @@ const LspDashboardScreen = () => {
         return;
       }
 
-      console.log('📦 Fetching tenders for:', storedCompanyName);
+      console.log('Fetching tenders for:', storedCompanyName);
 
       const statuses = ['Active', 'Pending', 'Completed', 'INPROCESS'];
       let active = [], pending = [], completed = [], inprocess = [];
@@ -74,20 +98,29 @@ const LspDashboardScreen = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ companyName: storedCompanyName, status }),
         });
-
+        
+        const storedResults = await AsyncStorage.getItem("bidResults");
+const bidResults = storedResults ? JSON.parse(storedResults) : [];
         if (res.ok) {
           const contentType = res.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const data = await res.json();
-            const mapped = data.map(tender => ({
-              ...tender,
-              companyName: storedCompanyName
-            }));
+            const mapped = data.map(tender => {
+  const match = bidResults.find(
+    b => b.tenderNo === tender.tender_no && b.lspCompanyName === tender.company_name
+  );
+
+  return {
+    ...tender,
+    companyName: storedCompanyName,
+    selection_status: match ? match.selection_status : "PENDING",
+  };
+});
 
             if (status === 'Active') active = active.concat(mapped);
             else if (status === 'Pending') pending = pending.concat(mapped);
             else if (status === 'Completed') completed = completed.concat(mapped);
-            else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
+           else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
           }
         }
       }
@@ -100,7 +133,7 @@ const LspDashboardScreen = () => {
       setCompletedTenders(uniqueByTenderNo(completed));
       setInprocessTenders(uniqueByTenderNo(inprocess));
     } catch (err) {
-      console.error('🔥 Error in fetchData:', err);
+      console.error('Error in fetchData:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -133,6 +166,33 @@ const LspDashboardScreen = () => {
 
   const renderTenderItem = ({ item }) => {
     const isExpanded = expandedTenders[item.tenderNo];
+
+     const handleDetailsPress = () => {
+    switch (selectedStatus.toUpperCase()) {
+      case 'ACTIVE':
+      case 'PENDING':
+        navigation.navigate('LSPTenderDetails', { tender: item });
+        break;
+
+      case 'COMPLETED':
+        Alert.alert("Tender Completed", "✅ This tender has already been completed.");
+        break;
+
+      case 'INPROCESS': 
+        if (item.selectionStatus === 'CONFIRMED') {
+          Alert.alert("Tender Status", "✅ Your bid is accepted and confirmed!");
+        } else if (item.selectionStatus === 'REJECTED') {
+          Alert.alert("Tender Status", "❌ Your bid was rejected.");
+        } else {
+          Alert.alert("Tender Status", "⏳ Waiting for 3PL response.");
+        }
+        break;
+
+      default:
+        Alert.alert("Status Unknown", "⚠️ Unable to determine the tender status.");
+        break;
+    }
+  };
 
     return (
       <TouchableOpacity onPress={() => toggleExpand(item.tenderNo)} activeOpacity={0.85}>
@@ -167,19 +227,39 @@ const LspDashboardScreen = () => {
                 <Icon name="currency-inr" size={18} color="#1D3557" />
                 <Text style={styles.tenderInfo}>Price: ₹{item.tenderPrice}</Text>
               </View>
+               
+               <View style={styles.tenderRow}>
+              <Icon name="information" size={18} color="#1D3557" />
+              <Text style={styles.tenderInfo}>
+                Bid Status: {item.selectionStatus}
+              </Text>
+            </View>
+            
+            {selectedStatus.toUpperCase() !== "COMPLETED" && (
+              <>
+                <TouchableOpacity 
+                  onPress={handleDetailsPress} 
+                  style={styles.detailsButton}
+                >
+                  <Text style={styles.detailsButtonText}>View Details</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => navigation.navigate('LSPTenderDetails', { tender: item })}
-                style={styles.detailsButton}
-              >
-                <Text style={styles.detailsButtonText}>View Details</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
+                {item.selectionStatus === "CONFIRMED" && (
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("AssignTransporter", { tenderNo: item.tenderNo })}
+                    style={[styles.detailsButton, { backgroundColor: "green", marginTop: 8 }]}
+                  >
+                    <Text style={styles.detailsButtonText}>Assign Transporter</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
   const getCurrentTenders = () => {
     if (selectedStatus === 'Active') return activeTenders;

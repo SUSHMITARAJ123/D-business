@@ -26,6 +26,7 @@ import BidsNotificationScreen from '../screens/BidsNotificationScreen';
 import BidResultScreen from '../screens/BidResultScreen';
 import BidDetailScreen from "../screens/BidDetailScreen";
 import LSPBidDetailScreen from "../screens/LSP/LSPBidDetailScreen";
+import AssignTransporterScreen from "../screens/LSP/AssignTransporterScreen";
 
 
 
@@ -59,6 +60,7 @@ const AppNavigator = () => {
       <Stack.Screen name="BidResult" component={BidResultScreen} />
       <Stack.Screen name="BidDetail" component={BidDetailScreen} />
       <Stack.Screen name="LSPBidDetail" component={LSPBidDetailScreen} />
+       <Stack.Screen name="AssignTransporter" component={AssignTransporterScreen} />
  
 
 

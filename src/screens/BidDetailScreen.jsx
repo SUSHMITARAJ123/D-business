@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 
 export default function BidDetailScreen({ route }) {
   const navigation = useNavigation();
-  const { tender } = route.params;
+  const { tender } = route.params || {};
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmedIndex, setConfirmedIndex] = useState(null);
@@ -69,8 +69,29 @@ export default function BidDetailScreen({ route }) {
     fetchBids();
   }, [tender]);
 
-  const handleConfirm = (index) => {
-    setConfirmedIndex(index);
+  const handleConfirm = async (index) => {
+    const selectedBid = bids[index];
+
+    try {
+      const response = await fetch("http://10.0.2.2:9090/3pl/confirm-lsp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenderNo: tender.tenderNo,
+          lspCompanyName: selectedBid.lspCompanyName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.text(); 
+      console.log("Confirm API response:", result);
+
+      setConfirmedIndex(index);
 
   
     Animated.timing(fadeAnimRefs.current[index], {
@@ -90,11 +111,14 @@ export default function BidDetailScreen({ route }) {
    navigation.navigate('BidResult', {
     tender,
     bids,
-    confirmedIndex: index,
+    acceptedLsp: selectedBid,
   });
-};
 
-
+    } catch (error) {
+      console.error("Error confirming bid:", error);
+      Alert.alert("Error", "Failed to confirm bid. Please try again.");
+    }
+  };
   if (loading) {
     return (
       <View style={styles.center}>

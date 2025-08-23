@@ -1,50 +1,105 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect } from "react";
 
-export default function TenderResultScreen({ route, navigation }) {
-  const { tender, bids, myLspName } = route.params;
-  const myBidIndex = bids.findIndex(b => b.lspCompanyName === myLspName);
- const confirmedIndex = bids.findIndex(b => b.status === 'ACCEPTED'); 
-  const isWinner = confirmedIndex === myBidIndex;
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+export default function BidResultScreen({ route }) {
+  const { tender, bids, acceptedLsp } = route.params || {}; 
+
+  useEffect(() => {
+    if (bids && acceptedLsp) {
+      const bidResults = bids.map(bid => ({
+        tenderNo: tender?.tenderNo,
+        lspCompanyName: bid.lspCompanyName,
+        selectionStatus:
+          acceptedLsp.lspCompanyName === bid.lspCompanyName &&
+          acceptedLsp.bidPrice === bid.bidPrice
+            ? "CONFIRMED"
+            : "REJECTED",
+      }));
+
+      AsyncStorage.setItem("bidResults", JSON.stringify(bidResults));
+    }
+  }, [bids, acceptedLsp, tender]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.headerBox}>
         <Text style={styles.headerText}>Tender Result</Text>
+        <Text style={styles.subHeader}>Tender No: {tender?.tenderNo}</Text>
       </View>
 
-      <ScrollView style={styles.content}>
-        <Text style={styles.info}>Tender No: {tender.tenderNo}</Text>
-        <Text style={styles.info}>Source: {tender.sourceLocation}</Text>
-        <Text style={styles.info}>Destination: {tender.destinationLocation}</Text>
+      {/* Bids */}
+      {bids?.map((bid, index) => {
+        const isAccepted =
+          acceptedLsp &&
+          bid.lspCompanyName === acceptedLsp.lspCompanyName &&
+          bid.bidPrice === acceptedLsp.bidPrice;
 
-        {bids.map((bid, index) => (
+        return (
           <View
             key={index}
-            style={[
-              styles.bidRow,
-              index === confirmedIndex ? styles.winner : styles.loser
-            ]}
+            style={[styles.card, isAccepted ? styles.accepted : styles.rejected]}
           >
-            <Text>{bid.lspCompanyName}</Text>
-            <Text>₹{bid.bidPrice}</Text>
-            <Text>{index === confirmedIndex ? '✅ Accepted' : '❌ Rejected'}</Text>
+            <Text style={styles.company}>{bid.lspCompanyName}</Text>
+            <Text style={styles.price}>Bid Price: ₹{bid.bidPrice}</Text>
+            <Text style={styles.status}>
+              {isAccepted ? "✅ Accepted" : "❌ Rejected"}
+            </Text>
           </View>
-        ))}
-      </ScrollView>
-    </View>
+        );
+      })}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: { backgroundColor: '#1D3557', padding: 16, alignItems: 'center' },
-  headerText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  content: { padding: 16 },
-  info: { marginBottom: 4, fontSize: 14 },
-  bidRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 10, borderBottomWidth: 1, borderColor: '#ccc' },
-  winner: { backgroundColor: '#d4edda' },
-  loser: { backgroundColor: '#f8d7da' },
-  assignBtn: { backgroundColor: '#1D3557', padding: 12, marginTop: 20, borderRadius: 8, alignItems: 'center' },
-  assignText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+  container: {
+    backgroundColor: "#f9fafb",
+  },
+  headerBox: {
+    backgroundColor: "#2b61f4ff",
+    padding: 6,
+    borderRadius: 10,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  headerText: {
+    fontSize: 22,
+    marginTop: 30,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 6,
+  },
+  subHeader: {
+    fontSize: 16,
+    color: "#e0e7ff", 
+  },
+  card: {
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    backgroundColor: "#fff",
+  },
+  company: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  price: {
+    fontSize: 14,
+    marginVertical: 4,
+  },
+  status: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  accepted: {
+    borderColor: "green",
+    backgroundColor: "#e6ffe6",
+  },
+  rejected: {
+    borderColor: "red",
+    backgroundColor: "#ffe6e6",
+  },
 });
