@@ -32,15 +32,24 @@ const DashboardScreen = ({ navigation }) => {
       });
 
       const text = await res.text();
-      const data = JSON.parse(text);
-
-      return Array.isArray(data) ? data.length : 0;
-    } catch (err) {
-      console.error(`${status} tenders fetch error:`, err);
+       if (!text) {
       return 0;
     }
-  };
 
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.warn(`${status} tenders: Non-JSON response received →`, text);
+      return 0;
+    }
+
+    return Array.isArray(data) ? data.length : 0;
+  } catch (err) {
+    console.error(`${status} tenders fetch error:`, err);
+    return 0;
+  }
+};
   useEffect(() => {
     const loadStats = async () => {
       const ongoing = await fetchTendersByStatus('Active');

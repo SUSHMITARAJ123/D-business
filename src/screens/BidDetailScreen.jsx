@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
-  ToastAndroid, 
+  ToastAndroid,
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -19,8 +19,8 @@ export default function BidDetailScreen({ route }) {
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmedIndex, setConfirmedIndex] = useState(null);
-
-  const fadeAnimRefs = useRef([]); 
+  const [assignment, setAssignment] = useState(null);
+  const fadeAnimRefs = useRef([]);
 
   useEffect(() => {
     if (!tender || !tender.tenderNo || !tender.createdBy) {
@@ -29,96 +29,109 @@ export default function BidDetailScreen({ route }) {
       return;
     }
 
-    const fetchBids = async () => {
+    const fetchData = async () => {
       try {
+        // 1️⃣ Fetch bids
         const response = await fetch(
           'http://10.0.2.2:9090/api/lsp/responses/filter-by-tender',
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               companyName: tender.createdBy,
               tender_no: tender.tenderNo,
             }),
           }
         );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-
-        if (!data || data.length === 0) {
-          Alert.alert('No bids available for this tender');
-        }
-
-     
         fadeAnimRefs.current = data.map(() => new Animated.Value(0));
         setBids(data);
+
+        // 2️⃣ Fetch assignment
+        const res = await fetch(
+          `http://10.0.2.2:9090/3pl/assignments?companyName=${tender.createdBy}`
+        );
+        if (res.ok) {
+          const assignments = await res.json();
+          const tenderAssignment = assignments.find(
+            (a) => a.tenderNo === tender.tenderNo
+          );
+          if (tenderAssignment) {
+            setAssignment(tenderAssignment);
+
+            // Find which bid was confirmed
+            const confirmedIdx = data.findIndex(
+              (b) => b.lspCompanyName === tenderAssignment.lspCompanyName
+            );
+            if (confirmedIdx !== -1) {
+              setConfirmedIndex(confirmedIdx);
+            }
+          }
+        }
       } catch (error) {
-        console.error('Error fetching bids:', error);
+        console.error('Error fetching data:', error);
         Alert.alert('Error', 'Failed to load bid data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBids();
+    fetchData();
   }, [tender]);
 
   const handleConfirm = async (index) => {
     const selectedBid = bids[index];
 
     try {
-      const response = await fetch("http://10.0.2.2:9090/3pl/confirm-lsp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await fetch('http://10.0.2.2:9090/3pl/confirm-lsp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenderNo: tender.tenderNo,
           lspCompanyName: selectedBid.lspCompanyName,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.text(); 
-      console.log("Confirm API response:", result);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       setConfirmedIndex(index);
 
-  
-    Animated.timing(fadeAnimRefs.current[index], {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
+      Animated.timing(fadeAnimRefs.current[index], {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start();
 
- 
-    if (Platform.OS === 'android') {
-      ToastAndroid.show('Bid confirmed successfully!', ToastAndroid.SHORT);
-    } else {
-      Alert.alert('Confirmed', 'Bid confirmed successfully!');
-    }
-  
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Bid confirmed successfully!', ToastAndroid.SHORT);
+      } else {
+        Alert.alert('Confirmed', 'Bid confirmed successfully!');
+      }
 
-   navigation.navigate('BidResult', {
-    tender,
-    bids,
-    acceptedLsp: selectedBid,
-  });
+      // Refresh assignment
+      const res = await fetch(
+        `http://10.0.2.2:9090/3pl/assignments?companyName=${tender.createdBy}`
+      );
+      if (res.ok) {
+        const assignments = await res.json();
+        const tenderAssignment = assignments.find(
+          (a) => a.tenderNo === tender.tenderNo
+        );
+        setAssignment(tenderAssignment || null);
+      }
 
+      navigation.navigate('BidResult', {
+        tender,
+        bids,
+        acceptedLsp: selectedBid,
+      });
     } catch (error) {
-      console.error("Error confirming bid:", error);
-      Alert.alert("Error", "Failed to confirm bid. Please try again.");
+      console.error('Error confirming bid:', error);
+      Alert.alert('Error', 'Failed to confirm bid. Please try again.');
     }
   };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -148,14 +161,15 @@ export default function BidDetailScreen({ route }) {
 
             {bids.map((item, index) => {
               const isConfirmed = confirmedIndex === index;
-              const isDisabled = confirmedIndex !== null && !isConfirmed;
+              const alreadyConfirmed = confirmedIndex !== null;
 
               return (
                 <View
                   key={index}
                   style={[
                     styles.row,
-                    { backgroundColor: index % 2 === 0 ? '#fff' : '#f0f4f7' },
+                    { backgroundColor: index % 2 === 0 ? '#fff' : '#dfe9f1ff' },
+                    isConfirmed && { opacity: 0.9 },
                   ]}
                 >
                   <Text style={[styles.cell, { minWidth: 150 }]}>{item.lspCompanyName}</Text>
@@ -167,37 +181,43 @@ export default function BidDetailScreen({ route }) {
                   </Text>
                   <Text style={[styles.cell, { minWidth: 200 }]}>{item.lspMessage || 'N/A'}</Text>
                   <View style={[styles.cell, { minWidth: 130 }]}>
-                    {isConfirmed ? (
-                      <Animated.View
-                        style={{
-                          opacity: fadeAnimRefs.current[index],
-                          backgroundColor: 'gray',
-                          borderRadius: 5,
-                          paddingVertical: 6,
-                          paddingHorizontal: 10,
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Text style={styles.buttonText}>Confirmed</Text>
-                      </Animated.View>
+                    {alreadyConfirmed ? (
+                      isConfirmed ? (
+                        <View style={[styles.statusBox, { backgroundColor: '#49f791ff' }]}>
+                          <Text style={styles.buttonText}>Confirmed</Text>
+                        </View>
+                      ) : (
+                        <View style={[styles.statusBox, { backgroundColor: '#f57a6dff' }]}>
+                          <Text style={styles.buttonText}>Rejected</Text>
+                        </View>
+                      )
                     ) : (
-                      <TouchableOpacity
-                        style={[
-                          styles.confirmButton,
-                          isDisabled && { backgroundColor: '#ccc' },
-                        ]}
-                        onPress={() => handleConfirm(index)}
-                        disabled={isDisabled}
-                      >
-                        <Text style={styles.buttonText}>Confirm</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                      (item.bidPrice !== null || item.estimatedArrivalDate || item.lspMessage) && (
+      <TouchableOpacity
+        style={styles.confirmButton}
+        onPress={() => handleConfirm(index)}
+      >
+        <Text style={styles.buttonText}>Confirm</Text>
+      </TouchableOpacity>
+    )
+  )}
+</View>
                 </View>
               );
             })}
           </View>
         </ScrollView>
+
+        {/* 🚚 Assigned transporter details */}
+        {assignment && (
+          <View style={styles.assignmentCard}>
+            <Text style={styles.assignmentTitle}>Assigned Transporter</Text>
+            <Text style={styles.assignmentText}>🚛 LSP: {assignment.lspCompanyName}</Text>
+            <Text style={styles.assignmentText}>🚚 Vehicle: {assignment.vehicleNumber}</Text>
+            <Text style={styles.assignmentText}>👨‍✈️ Driver: {assignment.driverName}</Text>
+            <Text style={styles.assignmentText}>📞 Contact: {assignment.driverContact}</Text>
+          </View>
+        )}
       </ScrollView>
 
       {bids.length === 0 && (
@@ -208,41 +228,13 @@ export default function BidDetailScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    backgroundColor: '#1D3557',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  headerText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 22,
-  },
-  tableContainer: {
-    margin: 16,
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    backgroundColor: '#457B9D',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  header: { backgroundColor: '#1D3557', paddingVertical: 20, alignItems: 'center' },
+  headerText: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 22 },
+  tableContainer: { margin: 16, borderRadius: 10, backgroundColor: '#ffffff' },
+  table: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, overflow: 'hidden' },
+  tableHeader: { backgroundColor: '#457B9D' },
+  row: { flexDirection: 'row', alignItems: 'center' },
   cell: {
     flex: 1,
     paddingVertical: 10,
@@ -252,11 +244,7 @@ const styles = StyleSheet.create({
     borderRightColor: '#ddd',
     textAlignVertical: 'center',
   },
-  headerCell: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
+  headerCell: { color: 'white', fontWeight: 'bold', textAlign: 'center' },
   confirmButton: {
     backgroundColor: '#1D3557',
     paddingVertical: 6,
@@ -264,23 +252,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
   },
-  confirmedButton: {
-    backgroundColor: 'gray',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  noData: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    color: 'gray',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+  statusBox: {
+    borderRadius: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     alignItems: 'center',
   },
+  buttonText: { color: 'white', fontWeight: 'bold', fontSize: 13 },
+  noData: { textAlign: 'center', marginTop: 20, fontSize: 16, color: 'gray' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  assignmentCard: {
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    margin: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  assignmentTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#1e3a8a' },
+  assignmentText: { fontSize: 15, marginBottom: 6, color: '#374151' },
 });

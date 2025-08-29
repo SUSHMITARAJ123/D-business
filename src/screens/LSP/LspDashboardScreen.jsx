@@ -20,9 +20,9 @@ import ProfileMenuSheet from '../LSP/ProfileMenuSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+//   UIManager.setLayoutAnimationEnabledExperimental(true);
+// }
 
 const LspDashboardScreen = () => {
   const navigation = useNavigation();
@@ -334,6 +334,7 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
                 No {selectedStatus} tenders to display.
               </Text>
             }
+            scrollEnabled={false} 
           />
         )}
       </ScrollView>

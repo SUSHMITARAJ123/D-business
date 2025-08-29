@@ -1,132 +1,202 @@
-// MyBidsScreen.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
+  FlatList,
+  StatusBar,
   ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
-import { Card } from 'react-native-paper';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+  Platform,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function MyBidsScreen({ navigation }) {
-  const [bids, setBids] = useState([]);
+export default function DashboardScreen() {
+  const [companyName, setCompanyName] = useState(null);
+  const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-   const fetchBids = async () => {
-  //   try {
-  //     const res = await fetch('http://10.0.2.2:9090/lsp/bids');
-  //     const data = await res.json();
-  //     setBids(data);
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //     setRefreshing(false);
-  //   }
-   };
 
   useEffect(() => {
-    fetchBids();
+    const fetchCompanyAndTenders = async () => {
+      try {
+        const storedCompany = await AsyncStorage.getItem("companyName");
+        if (storedCompany) {
+          setCompanyName(storedCompany);
+
+          const response = await fetch(
+            `http://10.0.2.2:9090/api/lsp/responses?companyName=${storedCompany}`
+          );
+
+          const data = await response.json();
+          setTenders(data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching tenders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompanyAndTenders();
   }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchBids();
-  };
+  const renderTender = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.tenderNo}>Tender No: {item.tenderNo}</Text>
 
-  const renderBidItem = ({ item }) => (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.title}>Tender #{item.tenderNo}</Text>
-        <Text style={styles.detail}>
-          <Text style={styles.bold}>Bid Price:</Text> ₹{item.bidPrice}
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.bold}>ETA:</Text> {item.eta}
-        </Text>
-        <Text style={[styles.status, getStatusStyle(item.status)]}>
-          {item.status}
-        </Text>
-      </Card.Content>
-    </Card>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Source:</Text> {item.sourceLocation}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Destination:</Text> {item.destinationLocation}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Pickup:</Text> {item.pickupDate}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Drop:</Text> {item.dropDate}
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Weight:</Text> {item.weight} kg
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>Bid Price:</Text>{" "}
+        <Text style={styles.price}>₹{item.bidPrice}</Text>
+      </Text>
+      <Text style={styles.detail}>
+        <Text style={styles.label}>ETA:</Text> {item.estimatedArrivalDate}
+      </Text>
+
+      <Text style={[styles.status, getStatusStyle(item.status)]}>
+        {item.status}
+      </Text>
+    </View>
   );
 
   const getStatusStyle = (status) => {
-    switch (status.toLowerCase()) {
-      case 'accepted':
-        return { color: 'green', fontWeight: 'bold' };
-      case 'rejected':
-        return { color: 'red', fontWeight: 'bold' };
+    switch (status?.toLowerCase()) {
+      case "accepted":
+        return { color: "#28a745", backgroundColor: "#e9f7ef" };
+      case "rejected":
+        return { color: "#dc3545", backgroundColor: "#f8d7da" };
+      case "pending":
+        return { color: "#ffc107", backgroundColor: "#fff3cd" };
       default:
-        return { color: 'orange', fontWeight: 'bold' };
+        return { color: "#007bff", backgroundColor: "#e7f1ff" };
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#80b9f1ff" />
+        <Text style={{ marginTop: 10 }}>Loading tenders...</Text>
+      </View>
+    );
+  }
   return (
-    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
-      <Text style={styles.header}>My Bids</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>
+          {companyName ? `${companyName} - My Bids` : "Your Bids"}
+        </Text>
+      </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 50 }} />
+      {tenders.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>No tenders found for your company</Text>
+        </View>
       ) : (
         <FlatList
-          data={bids}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderBidItem}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          data={tenders}
+          keyExtractor={(item, index) =>
+            item.tenderNo?.toString() || index.toString()
           }
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No bids placed yet.</Text>
-          }
+          renderItem={renderTender}
+          contentContainerStyle={{ padding: 16 }}
         />
       )}
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
+  container: {
+    flex: 1,
+    backgroundColor: "#f4f6f9",
   },
-  list: {
+  header: {
+    backgroundColor: "#11438a",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 15 : 60,
     paddingBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+  },
+  headerText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
   },
   card: {
-    marginBottom: 15,
-    borderRadius: 16,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    marginBottom: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 3,
+    borderLeftWidth: 5,
+    borderLeftColor: "#11438a",
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1D3557',
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 10,
+    alignItems: "center",
+  },
+  cardBody: {
+    marginTop: 5,
+  },
+  tenderNo: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#11438a",
   },
   detail: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 6,
-    color: '#1D3557',
+    color: "#333",
   },
-  bold: { fontWeight: 'bold' },
+  label: {
+    fontWeight: "600",
+    color: "#1D3557",
+  },
+  price: {
+    fontWeight: "bold",
+    color: "#007bff",
+  },
   status: {
-    fontSize: 16,
-    marginTop: 10,
+    fontSize: 15,
+    fontWeight: "bold",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    // overflow: "hidden",
+    textTransform: "capitalize",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyText: {
-    color: '#fff',
     fontSize: 18,
-    textAlign: 'center',
-    marginTop: 50,
+    color: "#6c757d",
+    textAlign: "center",
+    marginTop: 40,
   },
 });
