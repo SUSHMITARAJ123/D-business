@@ -16,10 +16,35 @@ export default function AssignTransporterScreen({ route, navigation }) {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [driverName, setDriverName] = useState("");
   const [driverContact, setDriverContact] = useState("");
+  const [dlNumber, setDlNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const formatVehicleNumber = (text) => {
+    let cleaned = text.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    let formatted = "";
+
+    // if (cleaned.length > 0) formatted = cleaned.substring(0, 2);
+    // if (cleaned.length > 2) formatted += "-" + cleaned.substring(2, 4); 
+    // if (cleaned.length > 4) formatted += "-" + cleaned.substring(4, 6); 
+    // if (cleaned.length > 6) formatted += "-" + cleaned.substring(6, 10); 
+
+    setVehicleNumber(formatted);
+  };
+
+  const formatDlNumber = (text) => {
+    let cleaned = text.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    let formatted = "";
+
+    // if (cleaned.length > 0) formatted = cleaned.substring(0, 2); 
+    // if (cleaned.length > 2) formatted += "-" + cleaned.substring(2, 4); 
+    // if (cleaned.length > 4) formatted += "-" + cleaned.substring(4, 8); 
+    // if (cleaned.length > 8) formatted += "-" + cleaned.substring(8, 15); 
+
+    setDlNumber(formatted);
+  };
 
   const handleAssign = async () => {
-    if (!vehicleNumber || !driverName || !driverContact) {
+    if (!vehicleNumber || !driverName || !driverContact || !dlNumber) {
       alert("Please fill all fields.");
       return;
     }
@@ -36,6 +61,7 @@ export default function AssignTransporterScreen({ route, navigation }) {
             vehicleNumber,
             driverName,
             driverContact,
+            dlNumber,
           }),
         }
       );
@@ -73,9 +99,11 @@ export default function AssignTransporterScreen({ route, navigation }) {
         <Text style={styles.label}>Vehicle Number</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter vehicle number"
+          placeholder="BR-01-AB-1234"
           value={vehicleNumber}
           onChangeText={setVehicleNumber}
+          // onChangeText={formatVehicleNumber}
+          maxLength={13} 
         />
 
         <Text style={styles.label}>Driver Name</Text>
@@ -88,11 +116,22 @@ export default function AssignTransporterScreen({ route, navigation }) {
 
         <Text style={styles.label}>Driver Contact</Text>
         <TextInput
-          style={styles.input}
+         style={styles.input}
           placeholder="Enter driver contact"
           keyboardType="phone-pad"
           value={driverContact}
           onChangeText={setDriverContact}
+          maxLength={10}
+        />
+
+        <Text style={styles.label}>DL Number</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="BR-01-2025-1234567"
+          value={dlNumber}
+          onChangeText={setDlNumber}
+          // onChangeText={formatDlNumber}
+          maxLength={19} 
         />
 
         <TouchableOpacity

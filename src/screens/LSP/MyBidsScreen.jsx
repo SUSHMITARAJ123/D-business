@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f9",
   },
   header: {
-    backgroundColor: "#11438a",
+    backgroundColor: "#1D3557",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 15 : 60,
     paddingBottom: 20,
     alignItems: "center",
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
     borderLeftWidth: 5,
-    borderLeftColor: "#11438a",
+    borderLeftColor: "#607491ff",
   },
   cardHeader: {
     flexDirection: "row",
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   tenderNo: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#11438a",
+    color: "#1D3557",
   },
   detail: {
     fontSize: 15,
@@ -171,11 +171,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: "600",
-    color: "#1D3557",
+    color: "#080909ff",
   },
   price: {
     fontWeight: "bold",
-    color: "#007bff",
+    color: "#2b66baff",
   },
   status: {
     fontSize: 15,

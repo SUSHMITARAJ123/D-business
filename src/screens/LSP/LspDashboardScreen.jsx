@@ -51,29 +51,6 @@ const LspDashboardScreen = () => {
     return Array.from(map.values());
   };
 
-//   const fetchBidStatus = async (tenderNo, lspCompanyName) => {
-// try {
-// const res = await fetch('http://10.0.2.2:9090/3pl/confirm-lsp', {
-// method: 'POST',
-// headers: { 'Content-Type': 'application/json' },
-// body: JSON.stringify({ tenderNo, lspCompanyName }),
-// });
-
-
-// if (res.ok) {
-// const msg = await res.text();
-// if (msg.includes('LSP response confirmed successfully')) {
-// return 'ACCEPTED';
-// } else if (msg.includes('Failed')) {
-// return 'REJECTED';
-// }
-// }
-// return 'PENDING'; 
-// } catch (err) {
-// console.error(' Error fetching bid status:', err);
-// return 'PENDING';
-// }
-// };
 
   const fetchData = useCallback(async () => {
     try {
@@ -249,7 +226,7 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
                     onPress={() => navigation.navigate("AssignTransporter", { tenderNo: item.tenderNo })}
                     style={[styles.detailsButton, { backgroundColor: "green", marginTop: 8 }]}
                   >
-                    <Text style={styles.detailsButtonText}>Assign Transporter</Text>
+                    <Text style={styles.detailsButtonText}>Assign Vehicles</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -361,7 +338,7 @@ export default LspDashboardScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#F9FAFB', 
   },
   header: {
     backgroundColor: '#1D3557',
@@ -371,88 +348,111 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#323030ff',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
   },
   headerText: {
     color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   icon: {
     marginLeft: 20,
   },
   scrollContainer: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 28,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#A8DADC',
-    marginHorizontal: 5,
-    borderRadius: 12,
-    padding: 20,
+    marginHorizontal: 6,
+    borderRadius: 18,
+    borderColor: '#1D3557',
+    paddingVertical: 20,
     alignItems: 'center',
+    backgroundColor: '#e1e1e1fd',
+    shadowColor: '#f0eaeaff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statCardSelected: {
+    borderWidth: 2,
+    borderColor: '#1D3557',
+    backgroundColor: '#c9e8faff',
   },
   statNumber: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#1D3557',
     marginTop: 10,
   },
   statLabel: {
-    fontSize: 14,
-    color: '#1D3557',
+    fontSize: 15,
+    color: '#6B7280',
+    marginTop: 6,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   listContainer: {
     paddingBottom: 20,
   },
   tenderItem: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB',
   },
   tenderTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1D3557',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   tenderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   tenderInfo: {
     marginLeft: 8,
     fontSize: 15,
-    color: '#333',
+    color: '#374151',
+    fontWeight: '500',
   },
   detailsButton: {
     backgroundColor: '#1D3557',
-    marginTop: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 30,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 4,
   },
   detailsButtonText: {
     color: '#fff',
-    fontWeight: '600',
-  },
-  statCardSelected: {
-    borderWidth: 2,
-    borderColor: '#1D3557',
-    backgroundColor: '#F1FAEE',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.4,
   },
 });
