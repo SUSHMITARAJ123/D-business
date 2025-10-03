@@ -159,7 +159,7 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
         if (item.selectionStatus === 'CONFIRMED') {
           Alert.alert("Tender Status", "✅ Your bid is accepted and confirmed!");
         } else if (item.selectionStatus === 'REJECTED') {
-          Alert.alert("Tender Status", "❌ Your bid was rejected.");
+          Alert.alert("Tender Status", "❌ We regret your bid is not selected");
         } else {
           Alert.alert("Tender Status", "⏳ Waiting for 3PL response.");
         }

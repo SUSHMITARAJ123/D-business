@@ -13,83 +13,125 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
 const LoginScreen = ({ navigation }) => {
   const [method, setMethod] = useState('mobile');
+  const [mobileMode, setMobileMode] = useState('password');
   const [input, setInput] = useState('');
   const [password, setPassword] = useState('');
 
   const handleContinue = async () => {
-  if (!input.trim()) {
-    Alert.alert('Error', `Please enter your ${method}.`);
-    return;
-  }
+    if (!input.trim()) {
+      Alert.alert('Error', `Please enter your ${method}.`);
+      return;
+    }
 
-  if (method === 'email' && !password.trim()) {
-    Alert.alert('Error', 'Please enter your password.');
-    return;
-  }
+    if ((method === 'email' || (method === 'mobile' && mobileMode === 'password')) && !password.trim()) {
+      Alert.alert('Error', 'Please enter your password.');
+      return;
+    }
 
-  try {
-    if (method === 'email') {
-      const response = await fetch('http://10.0.2.2:9090/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: input, password: password }),
-      });
+    try {
+      if (method === 'email') {
+        // Email login
+        const response = await fetch('http://10.0.2.2:9090/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: input.trim(), password: password.trim() }),
+        });
 
-      const text = await response.text();
-      console.log('Login response:', text);
+        const data = await response.json();
+        const { role, companyName } = data;
 
-      if (response.status === 200 && role && companyName) {
-  Alert.alert("Success", "OTP verified. You are logged in!");
+        if (response.status === 200 && role && companyName) {
+          await AsyncStorage.setItem('companyName', companyName);
 
-  await AsyncStorage.setItem('companyName', companyName);
+          Alert.alert('Success', 'Logged in successfully!', [
+            {
+              text: 'OK',
+              onPress: () =>
+                navigation.navigate(
+                  role === 'LSP' ? 'LspDashboardScreen' : 'Dashboard',
+                  { companyName, email: input.trim() }
+                ),
+            },
+          ]);
+        } else {
+          Alert.alert('Error', 'Invalid email or password.');
+        }
+      } else if (method === 'mobile') {
+        if (mobileMode === 'password') {
+  const response = await fetch('http://10.0.2.2:9090/auth/login-with-password', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ mobileNumber: input.trim(), password: password.trim() }),
+});
 
-  const mobileNumber = method === "mobile" ? input : null;
-  const email = method === "email" ? input : null;
+const text = await response.text();
 
-  if (role === "LSP") {
-    navigation.navigate("LspDashboardScreen", { companyName, mobileNumber, email });
-  } else if (role === "THREE_PL") {
-    navigation.navigate("Dashboard", { companyName, mobileNumber, email });
-  } else {
-    Alert.alert("Error", `Unrecognized role: ${role}`);
-  }
+if (text.toLowerCase().includes('login successful')) {
+  const roleMatch = text.match(/Welcome\s+([A-Z_]+)!/);
+    const companyMatch = text.match(/Company:\s*(.+)/);
+
+    const role = roleMatch ? roleMatch[1] : null;
+    const companyName = companyMatch ? companyMatch[1].trim() : null;
+
+    if (response.status === 200 && role && companyName) {
+      Alert.alert("Success", "You are logged in!");
+        await AsyncStorage.setItem('companyName', companyName);
+        const mobileNumber = method === "mobile" ? input : null;
+        const email = method === "email" ? input : null;
+
+      if (role === "LSP") {
+        navigation.navigate("LspDashboardScreen", { companyName, mobileNumber, email });
+      } else if (role === "THREE_PL") {
+        navigation.navigate("Dashboard", { companyName, mobileNumber, email  });
+      } else {
+        Alert.alert("Error", `Unrecognized role: ${role}`);
       }
     } else {
-      // Mobile login
-      const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobileNumber: input }),
-      });
-
-      if (response.status === 200) {
-        Alert.alert('OTP Sent', `OTP sent to ${input}`);
-        navigation.navigate('SignInOtpVerification', { method, input });
-      } else {
-        Alert.alert('Error', 'Failed to send OTP');
-      }
+      Alert.alert("Verification Failed", "Invalid OTP or user role.");
     }
-  } catch (error) {
-    console.error('Login Error:', error);
-    Alert.alert('Error', 'Something went wrong. Please try again.');
-  }
-};
+   
+} else {
+  Alert.alert('Error', text);
+}
 
+
+        } else {
+          // Mobile + OTP login
+          const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobileNumber: input.trim() }),
+          });
+
+          if (response.status === 200) {
+            Alert.alert('OTP Sent', `OTP sent to ${input.trim()}`, [
+              {
+                text: 'OK',
+                onPress: () => navigation.navigate('SignInOtpVerification', { method, input: input.trim() }),
+              },
+            ]);
+          } else {
+            Alert.alert('Error', 'Failed to send OTP');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Login Error:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  };
 
   return (
     <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
           <View style={styles.card}>
             <Text style={styles.loginTitle}>Welcome Back</Text>
             <Text style={styles.loginSubtitle}>Login using mobile or email</Text>
 
+            {/* Toggle between Mobile & Email */}
             <View style={styles.toggleContainer}>
               <Pressable
                 style={[styles.toggle, method === 'mobile' && styles.activeToggle]}
@@ -98,21 +140,21 @@ const LoginScreen = ({ navigation }) => {
                   setPassword('');
                 }}
               >
-                <Text style={[styles.toggleText, method === 'mobile' && styles.activeText]}>
-                  📱 Mobile
-                </Text>
+                <Text style={[styles.toggleText, method === 'mobile' && styles.activeText]}>📱 Mobile</Text>
               </Pressable>
 
               <Pressable
                 style={[styles.toggle, method === 'email' && styles.activeToggle]}
-                onPress={() => setMethod('email')}
+                onPress={() => {
+                  setMethod('email');
+                  setMobileMode('password');
+                }}
               >
-                <Text style={[styles.toggleText, method === 'email' && styles.activeText]}>
-                  📧 Email
-                </Text>
+                <Text style={[styles.toggleText, method === 'email' && styles.activeText]}>📧 Email</Text>
               </Pressable>
             </View>
 
+            {/* Common input field */}
             <TextInput
               style={styles.input}
               placeholder={`Enter your ${method}`}
@@ -122,6 +164,7 @@ const LoginScreen = ({ navigation }) => {
               onChangeText={setInput}
             />
 
+            {/* Password input for email */}
             {method === 'email' && (
               <>
                 <TextInput
@@ -138,10 +181,35 @@ const LoginScreen = ({ navigation }) => {
               </>
             )}
 
+            {/* Mobile password input */}
+            {method === 'mobile' && mobileMode === 'password' && (
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your password"
+                placeholderTextColor="#bbb"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            )}
+
+            {/* Mobile toggle & Forgot Password */}
+            {method === 'mobile' && (
+              <View style={styles.rowContainer}>
+                <Pressable onPress={() => setMobileMode(mobileMode === 'password' ? 'otp' : 'password')}>
+                  <Text style={styles.resetText}>
+                    {mobileMode === 'password' ? 'Login with OTP ' : 'Login with Password '}
+                  </Text>
+                </Pressable>
+
+                <Pressable onPress={() => navigation.navigate('ResetPassword')}>
+                  <Text style={styles.resetText1}>Forgot Password?</Text>
+                </Pressable>
+              </View>
+            )}
+
             <Pressable style={styles.button} onPress={handleContinue}>
-              <Text style={styles.buttonText}>
-                {method === 'email' ? 'Login' : 'Send OTP'}
-              </Text>
+              <Text style={styles.buttonText}>{method === 'mobile' && mobileMode === 'otp' ? 'Send OTP' : 'Login'}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -151,9 +219,7 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     margin: 20,
@@ -165,80 +231,19 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
   },
-  loginTitle: {
-    fontSize: 24,
-    textAlign: 'center',
-    fontWeight: '800',
-    color: '#1D3557',
-    marginBottom: 8,
-  },
-  loginSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#6b7280',
-    marginBottom: 20,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  toggle: {
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    marginHorizontal: 6,
-    borderWidth: 1.5,
-    borderRadius: 20,
-    borderColor: '#94a3b8',
-    backgroundColor: '#f1f5f9',
-  },
-  activeToggle: {
-    backgroundColor: '#1D3557',
-    borderColor: '#1D3557',
-  },
-  toggleText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1D3557',
-  },
-  activeText: {
-    color: '#fff',
-  },
-  input: {
-    backgroundColor: '#f8fafc',
-    borderColor: 'black',
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    fontSize: 15,
-    marginBottom: 14,
-    color: '#000',
-  },
-  resetText: {
-    textAlign: 'right',
-    color: '#1D4ED8',
-    fontWeight: '600',
-    marginBottom: 14,
-    fontSize: 13,
-  },
-  button: {
-    backgroundColor: '#F1FAEE',
-    paddingVertical: 14,
-    borderRadius: 30,
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  buttonText: {
-    color: '#1D3557',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  loginTitle: { fontSize: 24, textAlign: 'center', fontWeight: '800', color: '#1D3557', marginBottom: 8 },
+  loginSubtitle: { fontSize: 14, textAlign: 'center', color: '#6b7280', marginBottom: 20 },
+  toggleContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
+  toggle: { paddingVertical: 10, paddingHorizontal: 22, marginHorizontal: 6, borderWidth: 1.5, borderRadius: 20, borderColor: '#94a3b8', backgroundColor: '#f1f5f9' },
+  activeToggle: { backgroundColor: '#1D3557', borderColor: '#1D3557' },
+  toggleText: { fontSize: 15, fontWeight: '600', color: '#1D3557' },
+  activeText: { color: '#fff' },
+  input: { backgroundColor: '#f8fafc', borderColor: 'black', borderWidth: 1, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, fontSize: 15, marginBottom: 14, color: '#000' },
+  rowContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  resetText: { color: '#1D4ED8', fontWeight: '600', fontSize: 14 },
+  resetText1: { color: '#1D4ED8', fontWeight: '600', fontSize: 13 },
+  button: { backgroundColor: '#F1FAEE', paddingVertical: 14, borderRadius: 30, alignItems: 'center', marginTop: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
+  buttonText: { color: '#1D3557', fontWeight: '700', fontSize: 16 },
 });
 
 export default LoginScreen;
