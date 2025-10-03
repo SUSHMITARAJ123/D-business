@@ -98,7 +98,7 @@ if (text.toLowerCase().includes('login successful')) {
 
 
         } else {
-          // Mobile + OTP login
+          // Mobile & OTP login
           const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

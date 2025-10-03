@@ -33,7 +33,6 @@ const ResetPasswordFlow = () => {
     return () => clearInterval(countdown);
   }, [timer]);
 
-  // Password strength checker
   useEffect(() => {
     const evaluateStrength = (pwd) => {
       if (pwd.length < 6) return 'Too short';

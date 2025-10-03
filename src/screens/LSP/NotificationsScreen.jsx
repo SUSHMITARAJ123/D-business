@@ -31,7 +31,7 @@ const NotificationsScreen = () => {
   ]);
 
   useEffect(() => {
-    // Later: Fetch notifications from  API or set up Firebase listener here.
+   //..............
   }, []);
 
   const renderItem = ({ item }) => (
