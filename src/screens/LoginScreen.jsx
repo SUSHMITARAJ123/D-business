@@ -193,20 +193,24 @@ if (text.toLowerCase().includes('login successful')) {
               />
             )}
 
-            {/* Mobile toggle & Forgot Password */}
-            {method === 'mobile' && (
-              <View style={styles.rowContainer}>
-                <Pressable onPress={() => setMobileMode(mobileMode === 'password' ? 'otp' : 'password')}>
-                  <Text style={styles.resetText}>
-                    {mobileMode === 'password' ? 'Login with OTP ' : 'Login with Password '}
-                  </Text>
-                </Pressable>
+           {/* Mobile toggle & Forgot Password */}
+{method === 'mobile' && (
+  <View style={styles.rowContainer}>
+    <Pressable onPress={() => setMobileMode(mobileMode === 'password' ? 'otp' : 'password')}>
+      <Text style={styles.resetText}>
+        {mobileMode === 'password' ? 'Login with OTP ' : 'Login with Password '}
+      </Text>
+    </Pressable>
 
-                <Pressable onPress={() => navigation.navigate('ResetPassword')}>
-                  <Text style={styles.resetText1}>Forgot Password?</Text>
-                </Pressable>
-              </View>
-            )}
+    {/* Show Forgot Password ONLY if in password mode */}
+    {mobileMode === 'password' && (
+      <Pressable onPress={() => navigation.navigate('ResetPassword')}>
+        <Text style={styles.resetText1}>Forgot Password?</Text>
+      </Pressable>
+    )}
+  </View>
+)}
+
 
             <Pressable style={styles.button} onPress={handleContinue}>
               <Text style={styles.buttonText}>{method === 'mobile' && mobileMode === 'otp' ? 'Send OTP' : 'Login'}</Text>
