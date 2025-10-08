@@ -18,35 +18,40 @@ const PendingTenderScreen = () => {
   const [tenders, setTenders] = useState([]);
 
   useEffect(() => {
-    const fetchTenders = async () => {
-      try {
-        const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            companyName: companyName,
-            status: 'Pending',
-          }),
-        });
+  const fetchTenders = async () => {
+    try {
+      const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: companyName,
+          status: 'Pending',
+        }),
+      });
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            setTenders([]);
-            return;
-          }
-          const errorText = await response.text();
-          throw new Error(`Server error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        setTenders(data);
-      } catch (error) {
-        console.error('Error fetching pending tenders:', error);
+      if (response.status === 404) {
+        const text = await response.text(); 
+        console.warn(`Pending tenders: ${text}`);
+        setTenders([]); 
+        return;
       }
-    };
 
-    fetchTenders();
-  }, [companyName]);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      setTenders(data);
+    } catch (error) {
+      console.error('Error fetching pending tenders:', error);
+      setTenders([]); 
+    }
+  };
+
+  fetchTenders();
+}, [companyName]);
+
 
   const renderItem = ({ item }) => (
     <TouchableOpacity

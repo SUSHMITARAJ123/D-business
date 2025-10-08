@@ -51,6 +51,7 @@ export default function BidDetailScreen({ route }) {
 
   const isMounted = useRef(true);
 
+  // Fetch bids and assignments
   useEffect(() => {
     isMounted.current = true;
 
@@ -62,6 +63,7 @@ export default function BidDetailScreen({ route }) {
 
     const fetchData = async () => {
       try {
+        // Fetch bids
         const response = await fetch(
           "http://10.0.2.2:9090/api/lsp/responses/filter-by-tender",
           {
@@ -77,6 +79,7 @@ export default function BidDetailScreen({ route }) {
         const data = await response.json();
         if (isMounted.current) setBids(data);
 
+        // Load confirmed bid from AsyncStorage
         const saved = await AsyncStorage.getItem(`remarks_${tender.tenderNo}`);
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -86,6 +89,7 @@ export default function BidDetailScreen({ route }) {
           }
         }
 
+        // Fetch assignments
         const res = await fetch(
           `http://10.0.2.2:9090/3pl/assignments?companyName=${tender.createdBy}`
         );
@@ -108,11 +112,12 @@ export default function BidDetailScreen({ route }) {
     return () => (isMounted.current = false);
   }, [tender]);
 
+  // Sort bids
   const sortedBids = [...bids].sort((a, b) => {
-    if (sortType === "price") return (parseFloat(b.bidPrice) || 0) - (parseFloat(a.bidPrice) || 0);
+    if (sortType === "price") return (parseFloat(a.bidPrice) || 0) - (parseFloat(b.bidPrice) || 0);
     const dateA = new Date(a.estimatedArrivalDate || 0);
     const dateB = new Date(b.estimatedArrivalDate || 0);
-    return dateB - dateA;
+    return dateA - dateB;
   });
 
   const openConfirmModal = bid => {
@@ -167,7 +172,6 @@ export default function BidDetailScreen({ route }) {
         .join("\n");
 
       const fileName = `bids_${tender.tenderNo}.csv`;
-
       let path =
         mode === "downloads" && Platform.OS === "android"
           ? `${RNFS.DownloadDirectoryPath}/${fileName}`
@@ -182,15 +186,14 @@ export default function BidDetailScreen({ route }) {
         }
       }
 
-      await RNFS.writeFile(path, header + rows, 'utf8');
-
+      await RNFS.writeFile(path, header + rows, "utf8");
       const exists = await RNFS.exists(path);
       if (!exists) return Alert.alert("Error", "File not created");
 
       if (mode === "share") {
         await Share.open({
-          url: Platform.OS === 'android' ? `file://${path}` : path,
-          type: 'text/csv',
+          url: Platform.OS === "android" ? `file://${path}` : path,
+          type: "text/csv",
           filename: fileName,
         });
         Alert.alert("Success", "CSV ready to share!");
@@ -203,25 +206,48 @@ export default function BidDetailScreen({ route }) {
     }
   };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color={COLORS.primary} />;
+  if (loading)
+    return <ActivityIndicator style={{ flex: 1 }} size="large" color={COLORS.primary} />;
 
   const renderBidRow = ({ item, index }) => {
     const isConfirmed = confirmedLsp === item.lspCompanyName;
+    const canConfirm = !confirmedLsp && bids.length > 0;
+
     return (
-      <View style={[styles.row, { backgroundColor: index % 2 === 0 ? "#fff" : COLORS.lightGray }]}>
+      <View
+        style={[
+          styles.row,
+          { backgroundColor: index % 2 === 0 ? "#fff" : COLORS.lightGray },
+        ]}
+      >
         <Text style={[styles.cell, { minWidth: 150 }]}>{item.lspCompanyName}</Text>
-        <Text style={[styles.cell, { minWidth: 100 }]}>{item.bidPrice ? `₹${item.bidPrice}` : "N/A"}</Text>
-        <Text style={[styles.cell, { minWidth: 150 }]}>{item.estimatedArrivalDate || "N/A"}</Text>
+        <Text style={[styles.cell, { minWidth: 100 }]}>
+          {item.bidPrice ? `₹${item.bidPrice}` : "N/A"}
+        </Text>
+        <Text style={[styles.cell, { minWidth: 150 }]}>
+          {item.estimatedArrivalDate || "N/A"}
+        </Text>
         <Text style={[styles.cell, { minWidth: 200 }]}>{item.lspMessage || "N/A"}</Text>
         <View style={[styles.cell, { minWidth: 130 }]}>
-          {confirmedLsp ? (
-            <View style={[styles.statusBox, { backgroundColor: isConfirmed ? COLORS.green : COLORS.red }]}>
-              <Text style={styles.buttonText}>{isConfirmed ? "Confirmed" : "Not Confirmed"}</Text>
+          {canConfirm && item.bidPrice ? (
+            <TouchableOpacity
+              disabled={isConfirmed}
+              style={[
+                styles.confirmButton,
+                { backgroundColor: isConfirmed ? COLORS.green : COLORS.primary },
+              ]}
+              onPress={() => openConfirmModal(item)}
+            >
+              <Text style={styles.buttonText}>
+                {isConfirmed ? "Confirmed" : "Confirm"}
+              </Text>
+            </TouchableOpacity>
+          ) : isConfirmed ? (
+            <View style={[styles.statusBox, { backgroundColor: COLORS.green }]}>
+              <Text style={styles.buttonText}>Confirmed</Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.confirmButton} onPress={() => openConfirmModal(item)}>
-              <Text style={styles.buttonText}>Confirm</Text>
-            </TouchableOpacity>
+            <Text style={{ color: "#555", fontStyle: "italic" }}>Not Confirmed</Text>
           )}
         </View>
       </View>
@@ -230,11 +256,12 @@ export default function BidDetailScreen({ route }) {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Bid Details - {tender.tenderNo}</Text>
       </View>
 
-      {/* Actions & Sort Bar */}
+      {/* Actions & Sort */}
       <View style={styles.actionsBar}>
         <TouchableOpacity
           style={styles.actionsButton}
@@ -242,7 +269,6 @@ export default function BidDetailScreen({ route }) {
         >
           <Text style={styles.buttonText}>CSV Actions ⬇️</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.sortButton}
           onPress={() => setSortDropdownVisible(prev => !prev)}
@@ -252,21 +278,25 @@ export default function BidDetailScreen({ route }) {
         </TouchableOpacity>
       </View>
 
-      {/* Actions Dropdown */}
+      {/* Dropdowns */}
       {actionsDropdownVisible && (
         <View style={styles.dropdownMenu}>
-          <TouchableOpacity style={styles.dropdownItem} onPress={() => { handleDownload("share"); setActionsDropdownVisible(false); }}>
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={() => { handleDownload("share"); setActionsDropdownVisible(false); }}
+          >
             <Text>Share CSV</Text>
           </TouchableOpacity>
           {Platform.OS === "android" && (
-            <TouchableOpacity style={styles.dropdownItem} onPress={() => { handleDownload("downloads"); setActionsDropdownVisible(false); }}>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => { handleDownload("downloads"); setActionsDropdownVisible(false); }}
+            >
               <Text>Save to Downloads</Text>
             </TouchableOpacity>
           )}
         </View>
       )}
-
-      {/* Sort Dropdown */}
       {sortDropdownVisible && (
         <View style={styles.dropdownMenu}>
           <TouchableOpacity style={styles.dropdownItem} onPress={() => { setSortType("price"); setSortDropdownVisible(false); }}>
@@ -278,44 +308,34 @@ export default function BidDetailScreen({ route }) {
         </View>
       )}
 
-      {/* Expand/Collapse Table */}
-      <TouchableOpacity 
-  style={styles.expandButton} 
-  onPress={() => setTableExpanded(prev => !prev)}
->
-  <Text style={styles.expandButtonText}>
-    {tableExpanded ? "⬆️ Collapse Bids" : "⬇️ Expand Bids"}
-  </Text>
-</TouchableOpacity>
+      {/* Expand/Collapse */}
+      <TouchableOpacity style={styles.expandButton} onPress={() => setTableExpanded(prev => !prev)}>
+        <Text style={styles.expandButtonText}>{tableExpanded ? "⬆️ Collapse Bids" : "⬇️ Expand Bids"}</Text>
+      </TouchableOpacity>
 
-     {/* Bid Table */}
-{tableExpanded && (
-  <View style={styles.tableWrapper}>
-    <ScrollView horizontal>
-      <View>
-        {/* Table Header */}
-        <View style={[styles.row, styles.tableHeader]}>
-          <Text style={[styles.cell, styles.headerCell, { minWidth: 150 }]}>LSP Name</Text>
-          <Text style={[styles.cell, styles.headerCell, { minWidth: 100 }]}>Price</Text>
-          <Text style={[styles.cell, styles.headerCell, { minWidth: 150 }]}>ETA</Text>
-          <Text style={[styles.cell, styles.headerCell, { minWidth: 200 }]}>Message</Text>
-          <Text style={[styles.cell, styles.headerCell, { minWidth: 130 }]}>Action</Text>
+      {/* Bid Table */}
+      {tableExpanded && (
+        <View style={styles.tableWrapper}>
+          <ScrollView horizontal>
+            <View>
+              <View style={[styles.row, styles.tableHeader]}>
+                <Text style={[styles.cell, styles.headerCell, { minWidth: 150 }]}>LSP Name</Text>
+                <Text style={[styles.cell, styles.headerCell, { minWidth: 100 }]}>Price</Text>
+                <Text style={[styles.cell, styles.headerCell, { minWidth: 150 }]}>ETA</Text>
+                <Text style={[styles.cell, styles.headerCell, { minWidth: 200 }]}>Message</Text>
+                <Text style={[styles.cell, styles.headerCell, { minWidth: 130 }]}>Action</Text>
+              </View>
+              <FlatList
+                data={sortedBids}
+                renderItem={renderBidRow}
+                keyExtractor={(item, idx) => idx.toString()}
+                style={{ maxHeight: 350 }}
+                nestedScrollEnabled={true}
+              />
+            </View>
+          </ScrollView>
         </View>
-
-        {/* Scrollable Bids */}
-        <FlatList
-          data={sortedBids}
-          renderItem={renderBidRow}
-          keyExtractor={(item, idx) => idx.toString()}
-          style={{ maxHeight: 350 }}
-          nestedScrollEnabled={true} 
-        />
-      </View>
-    </ScrollView>
-  </View>
-)}
-
-
+      )}
 
       {/* Confirmed Bid */}
       {confirmedBidDetails && (
@@ -371,23 +391,24 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: COLORS.headerBg,
-    paddingVertical: 28,
+    paddingVertical: 24,
     alignItems: "center",
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+    marginBottom: 12,
   },
-  headerText: { color: COLORS.headerText, fontSize: 16, fontWeight: "bold" },
+  headerText: { color: COLORS.headerText, fontSize: 20, fontWeight: "bold" },
 
   actionsBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginHorizontal: 16,
-    marginVertical: 12,
+    marginBottom: 8,
   },
   actionsButton: {
     backgroundColor: COLORS.primary,
@@ -397,11 +418,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
   },
   sortButton: {
     backgroundColor: COLORS.primary,
@@ -413,11 +429,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flex: 1,
     marginLeft: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
   },
 
   dropdownMenu: {
@@ -426,22 +437,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     marginBottom: 8,
+    paddingVertical: 8,
   },
-  dropdownItem: { paddingVertical: 12, paddingHorizontal: 16 },
+  dropdownItem: { paddingVertical: 10, paddingHorizontal: 16 },
 
-  tableContainer: { marginHorizontal: 16, borderRadius: 12, overflow: "hidden", marginBottom: 16, backgroundColor: COLORS.cardBg },
+  tableWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tableHeader: { backgroundColor: COLORS.secondary },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 8 },
-  cell: { paddingHorizontal: 8, fontSize: 14, flexShrink: 1 },
+  cell: { paddingHorizontal: 8, fontSize: 14, flexShrink: 1, textAlign: "center" },
   headerCell: { color: "#fff", fontWeight: "bold", textAlign: "center" },
 
-  confirmButton: { backgroundColor: COLORS.primary, padding: 6, borderRadius: 8, alignItems: "center" },
-  statusBox: { borderRadius: 8, padding: 6, alignItems: "center" },
+  confirmButton: { backgroundColor: COLORS.primary, paddingVertical: 6, borderRadius: 8, alignItems: "center" },
+  statusBox: { borderRadius: 8, paddingVertical: 6, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   confirmedCard: {
@@ -452,11 +468,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#cde6d8",
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   confirmedTitle: { fontWeight: "700", fontSize: 16, marginBottom: 8, color: COLORS.green },
 
@@ -468,11 +479,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#d0d8ff",
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   assignmentTitle: { fontWeight: "700", fontSize: 16, marginBottom: 6, color: COLORS.secondary },
 
@@ -481,38 +487,21 @@ const styles = StyleSheet.create({
   modalTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 12 },
   input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 12, minHeight: 80, textAlignVertical: "top", marginBottom: 16 },
   modalButtons: { flexDirection: "row", justifyContent: "space-between" },
-  tableWrapper: {
-  marginHorizontal: 16,
-  marginBottom: 16,
-  borderRadius: 12,
-  overflow: "hidden",
-  backgroundColor: COLORS.cardBg,
-  borderWidth: 1,
-  borderColor: COLORS.border,
-},
-tableHeader: {
-  backgroundColor: COLORS.secondary,
-},
-expandButton: {
-  backgroundColor: COLORS.primary,
-  paddingVertical: 12,
-  paddingHorizontal: 16,
-  borderRadius: 12,
-  alignItems: "center",
-  justifyContent: "center",
-  marginHorizontal: 16,
-  marginVertical: 8,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-  elevation: 4,
-},
-expandButtonText: {
-  color: COLORS.buttonText,
-  fontWeight: "bold",
-  fontSize: 14,
-  textAlign: "center",
-},
 
+  expandButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 16,
+    marginVertical: 8,
+  },
+  expandButtonText: {
+    color: COLORS.buttonText,
+    fontWeight: "bold",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

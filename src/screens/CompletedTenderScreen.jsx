@@ -18,40 +18,44 @@ const CompletedTenderScreen = () => {
   const [tenders, setTenders] = useState([]);
 
   useEffect(() => {
-    const fetchTenders = async () => {
-      try {
-        const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            companyName: companyName,
-            status: 'Completed',
-          }),
-        });
+  const fetchTenders = async () => {
+    try {
+      const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: companyName,
+          status: 'Completed',
+        }),
+      });
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            setTenders([]);
-            return;
-          }
-          const errorText = await response.text();
-          throw new Error(`Server error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        const filtered = data.filter(
-          (tender) => tender.status.toLowerCase() === 'completed'
-        );
-        setTenders(filtered);
-      } catch (error) {
-        console.error('Error fetching completed tenders:', error);
+      if (response.status === 404) {
+        const text = await response.text();
+        console.warn(`Completed tenders: ${text}`);
+        setTenders([]); 
+        return;
       }
-    };
 
-    fetchTenders();
-  }, [companyName]);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const filtered = data.filter(
+        (tender) => tender.status?.toLowerCase() === 'completed'
+      );
+      setTenders(filtered);
+    } catch (error) {
+      console.error('Error fetching completed tenders:', error);
+    }
+  };
+
+  fetchTenders();
+}, [companyName]);
+
 
   const renderItem = ({ item }) => (
     <TouchableOpacity

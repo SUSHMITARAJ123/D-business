@@ -23,35 +23,50 @@ const OngoingTenderScreen = () => {
   // console.log("company name",companyName);
 
   useEffect(() => {
-    const fetchTenders = async () => {
-      try {
-        const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          
-          body: JSON.stringify({
-            companyName: companyName,
-            status: 'ACTIVE',
-          }),
-        });
+  const fetchTenders = async () => {
+    try {
+      const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: companyName,
+          status: 'ACTIVE',
+        }),
+      });
 
+      if (response.ok) {
         const data = await response.json();
-
         if (Array.isArray(data)) {
           setTenders(data);
           setFilteredTenders(data);
         } else {
-          console.error('Unexpected response:', data);
+          console.warn('Unexpected response format:', data);
+          setTenders([]);
+          setFilteredTenders([]);
         }
-      } catch (error) {
-        console.error('Error fetching tenders:', error);
+      } else if (response.status === 404) {
+        console.warn('No ACTIVE tenders found for company:', companyName);
+        setTenders([]);
+        setFilteredTenders([]);
+      } else {
+        const text = await response.text();
+        console.error(`Error fetching tenders (status ${response.status}):`, text);
+        setTenders([]);
+        setFilteredTenders([]);
       }
-    };
 
-    fetchTenders();
-  }, [companyName]);
+    } catch (error) {
+      console.error('Error fetching tenders:', error);
+      setTenders([]);
+      setFilteredTenders([]);
+    }
+  };
+
+  fetchTenders();
+}, [companyName]);
+
 
   const handleSearch = (text) => {
     setSearch(text);

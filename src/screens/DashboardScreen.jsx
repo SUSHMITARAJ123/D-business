@@ -22,25 +22,34 @@ const DashboardScreen = ({ navigation }) => {
   });
 
   const fetchTendersByStatus = async (status) => {
-    try {
-      const res = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ companyName, status }),
-      });
+  try {
+    const res = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyName, status }),
+    });
 
+
+    if (res.status === 404) {
       const text = await res.text();
-       if (!text) {
+      console.info(`${status} tenders: ${text}`); 
       return 0;
     }
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`${status} tenders: Server error ${res.status} - ${errorText}`);
+      return 0;
+    }
+
+    const text = await res.text();
+    if (!text) return 0;
 
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.warn(`${status} tenders: Non-JSON response received →`, text);
+      console.warn(`${status} tenders: Unexpected non-JSON response →`, text);
       return 0;
     }
 
@@ -50,6 +59,7 @@ const DashboardScreen = ({ navigation }) => {
     return 0;
   }
 };
+
   useEffect(() => {
     const loadStats = async () => {
       const ongoing = await fetchTendersByStatus('Active');
