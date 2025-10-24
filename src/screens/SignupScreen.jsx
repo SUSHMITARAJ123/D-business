@@ -22,6 +22,7 @@ const SignupScreen = () => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
+  const [serviceZone, setServiceZone] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -43,6 +44,9 @@ const SignupScreen = () => {
       case 'address':
         setAddress(value);
         break;
+        case 'serviceZone':
+        setServiceZone(value);
+        break;
       default:
         break;
     }
@@ -56,6 +60,8 @@ const SignupScreen = () => {
     if (!mobile.trim()) newErrors.mobile = 'Mobile number is required';
     if (!password.trim()) newErrors.password = 'Password is required';
     if (!address.trim()) newErrors.address = 'Location is required';
+    if (userType === 'LSP' && !serviceZone.trim())
+      newErrors.serviceZone = 'Service zone is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -70,11 +76,12 @@ const SignupScreen = () => {
       location: address,
       role: userType,
       password,
+      serviceZone: userType === 'LSP' ? serviceZone : null,
     };
 
     try {
       setLoading(true);
-      const response = await fetch('http://10.0.2.2:9090/auth/signup', {
+      const response = await fetch('http://10.0.2.2:9096/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +97,9 @@ const SignupScreen = () => {
         await AsyncStorage.setItem('email', email);
         await AsyncStorage.setItem('mobile', mobile);
         await AsyncStorage.setItem('userType', userType);
-
+        if (userType === 'LSP') {
+          await AsyncStorage.setItem('serviceZone', serviceZone);
+        }
         Alert.alert('Success', 'OTP sent successfully.', [
           {
             text: 'OK',
@@ -212,6 +221,19 @@ const SignupScreen = () => {
                 />
                 {renderError('address')}
               </View>
+               {userType === 'LSP' && (
+                <View style={styles.inputBox}>
+                  <Text style={styles.label}>🌍 Service Zone</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter service zone"
+                    placeholderTextColor="#999"
+                    value={serviceZone}
+                    onChangeText={(text) => handleChange('serviceZone', text.toUpperCase())}
+                  />
+                  {renderError('serviceZone')}
+                </View>
+              )}
 
               <Pressable
                 style={({ pressed }) => [

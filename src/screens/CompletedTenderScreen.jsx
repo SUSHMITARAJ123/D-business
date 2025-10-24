@@ -20,7 +20,7 @@ const CompletedTenderScreen = () => {
   useEffect(() => {
   const fetchTenders = async () => {
     try {
-      const response = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+      const response = await fetch('http://10.0.2.2:9096/3PL/tenders/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

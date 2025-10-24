@@ -44,7 +44,7 @@ const ProfileScreen = () => {
 
         const body = mobileNumber ? { mobileNumber } : { email };
 
-        const response = await fetch('http://10.0.2.2:9090/users/profile', {
+        const response = await fetch('http://10.0.2.2:9096/users/profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

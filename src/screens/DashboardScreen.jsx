@@ -23,7 +23,7 @@ const DashboardScreen = ({ navigation }) => {
 
   const fetchTendersByStatus = async (status) => {
   try {
-    const res = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
+    const res = await fetch('http://10.0.2.2:9096/3PL/tenders/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ companyName, status }),

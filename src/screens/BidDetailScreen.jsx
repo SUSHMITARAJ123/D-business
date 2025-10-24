@@ -65,7 +65,7 @@ export default function BidDetailScreen({ route }) {
       try {
         // Fetch bids
         const response = await fetch(
-          "http://10.0.2.2:9090/api/lsp/responses/filter-by-tender",
+          "http://10.0.2.2:9096/api/lsp/responses/filter-by-tender",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -91,7 +91,7 @@ export default function BidDetailScreen({ route }) {
 
         // Fetch assignments
         const res = await fetch(
-          `http://10.0.2.2:9090/3pl/assignments?companyName=${tender.createdBy}`
+          `http://10.0.2.2:9096/3pl/assignments?companyName=${tender.createdBy}`
         );
         if (res.ok) {
           const assignments = await res.json();
@@ -139,7 +139,7 @@ export default function BidDetailScreen({ route }) {
       };
       await AsyncStorage.setItem(`remarks_${tender.tenderNo}`, JSON.stringify(dataToSave));
 
-      await fetch("http://10.0.2.2:9090/3pl/confirm-lsp", {
+      await fetch("http://10.0.2.2:9096/3pl/confirm-lsp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -247,7 +247,7 @@ export default function BidDetailScreen({ route }) {
               <Text style={styles.buttonText}>Confirmed</Text>
             </View>
           ) : (
-            <Text style={{ color: "#555", fontStyle: "italic" }}>Not Confirmed</Text>
+            <Text style={{ color: "#0f0f0fff", fontStyle: "italic" }}>Not Confirmed</Text>
           )}
         </View>
       </View>
@@ -314,28 +314,57 @@ export default function BidDetailScreen({ route }) {
       </TouchableOpacity>
 
       {/* Bid Table */}
-      {tableExpanded && (
-        <View style={styles.tableWrapper}>
-          <ScrollView horizontal>
-            <View>
-              <View style={[styles.row, styles.tableHeader]}>
-                <Text style={[styles.cell, styles.headerCell, { minWidth: 150 }]}>LSP Name</Text>
-                <Text style={[styles.cell, styles.headerCell, { minWidth: 100 }]}>Price</Text>
-                <Text style={[styles.cell, styles.headerCell, { minWidth: 150 }]}>ETA</Text>
-                <Text style={[styles.cell, styles.headerCell, { minWidth: 200 }]}>Message</Text>
-                <Text style={[styles.cell, styles.headerCell, { minWidth: 130 }]}>Action</Text>
-              </View>
-              <FlatList
-                data={sortedBids}
-                renderItem={renderBidRow}
-                keyExtractor={(item, idx) => idx.toString()}
-                style={{ maxHeight: 350 }}
-                nestedScrollEnabled={true}
-              />
-            </View>
-          </ScrollView>
+     {tableExpanded && (
+  <View style={[styles.tableWrapper, { backgroundColor: '#fff' }]}>
+    <ScrollView horizontal showsHorizontalScrollIndicator>
+      <View>
+        {/* Table Header */}
+        <View style={[styles.row, styles.tableHeader]}>
+          <Text style={[styles.cell, styles.headerCell, { width: 150 }]}>LSP Name</Text>
+          <Text style={[styles.cell, styles.headerCell, { width: 100 }]}>Price</Text>
+          <Text style={[styles.cell, styles.headerCell, { width: 150 }]}>ETA</Text>
+          <Text style={[styles.cell, styles.headerCell, { width: 200 }]}>Message</Text>
+          <Text style={[styles.cell, styles.headerCell, { width: 130 }]}>Action</Text>
         </View>
-      )}
+
+        {/* Table Rows */}
+        <FlatList
+          data={sortedBids}
+          keyExtractor={(item, idx) => idx.toString()}
+          renderItem={({ item, index }) => (
+            <View
+              style={[
+                styles.row,
+                { backgroundColor: index % 2 === 0 ? '#EAF2F8' : '#FDFEFE' },
+              ]}
+            >
+              <Text style={[styles.cell, { width: 150, color: '#000' }]}>{item?.lspCompanyName ?? 'N/A'}</Text>
+              <Text style={[styles.cell, { width: 100, color: '#000' }]}>{item?.price ?? '-'}</Text>
+              <Text style={[styles.cell, { width: 150, color: '#000' }]}>{item?.eta ?? '-'}</Text>
+              <Text
+                style={[styles.cell, { width: 200, color: '#000' }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {item?.message ?? '-'}
+              </Text>
+              <Text style={[styles.cell, { width: 130, color: '#000' }]}>{item?.action ?? '-'}</Text>
+            </View>
+          )}
+          style={{ maxHeight: 350 }}
+          nestedScrollEnabled
+          ListEmptyComponent={
+            <Text style={{ padding: 20, textAlign: 'center', color: '#000' }}>
+              No bids available
+            </Text>
+          }
+        />
+      </View>
+    </ScrollView>
+  </View>
+)}
+
+
 
       {/* Confirmed Bid */}
       {confirmedBidDetails && (
@@ -391,10 +420,11 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: COLORS.headerBg,
-    paddingVertical: 24,
+    paddingVertical: 28,
+    paddingLeft: 28,
     alignItems: "center",
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -443,19 +473,30 @@ const styles = StyleSheet.create({
   dropdownItem: { paddingVertical: 10, paddingHorizontal: 16 },
 
   tableWrapper: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: COLORS.cardBg,
+    marginTop: 10,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
-  tableHeader: { backgroundColor: COLORS.secondary },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 8 },
-  cell: { paddingHorizontal: 8, fontSize: 14, flexShrink: 1, textAlign: "center" },
-  headerCell: { color: "#fff", fontWeight: "bold", textAlign: "center" },
-
+  tableHeader: {
+    backgroundColor: '#1a427bff',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+  },
+  cell: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    textAlign: 'center',
+  },
+  headerCell: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   confirmButton: { backgroundColor: COLORS.primary, paddingVertical: 6, borderRadius: 8, alignItems: "center" },
   statusBox: { borderRadius: 8, paddingVertical: 6, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 13 },
@@ -464,7 +505,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#eaf9f1",
+    backgroundColor: "#f2faffd7",
     borderWidth: 1,
     borderColor: "#cde6d8",
     marginBottom: 12,

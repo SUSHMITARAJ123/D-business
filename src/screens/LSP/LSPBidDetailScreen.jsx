@@ -17,7 +17,7 @@ export default function BidDetailScreen({ route }) {
     const fetchBid = async () => {
       try {
         const res = await fetch(
-          `http://10.0.2.2:9090/api/lsp/responses?companyName=${encodeURIComponent(
+          `http://10.0.2.2:9096/api/lsp/responses?companyName=${encodeURIComponent(
             tender.companyName
           )}`
         );

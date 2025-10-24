@@ -58,7 +58,7 @@ const SignInOtpVerification = ({ route, navigation }) => {
   }
 
   try {
-    const response = await fetch("http://10.0.2.2:9090/auth/verify-otp", {
+    const response = await fetch("http://10.0.2.2:9096/auth/verify-otp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

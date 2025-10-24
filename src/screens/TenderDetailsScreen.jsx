@@ -25,6 +25,11 @@ const TenderDetailsScreen = ({ route }) => {
           <Text style={styles.value}>{tender.destinationLocation}</Text>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.label}>Service Zone</Text>
+          <Text style={styles.value}>{tender.tenderZone || 'N/A'}</Text>
+        </View>
+
         <View style={styles.row}>
           <View style={[styles.card, styles.halfWidth]}>
             <Text style={styles.label}>Pickup Date</Text>

@@ -10,7 +10,7 @@ export default function TenderDetailsScreen({ route }) {
     const fetchAssignment = async () => {
       try {
         const response = await fetch(
-          `http://10.0.2.2:9090/3pl/tenders/${tenderNo}/assignment`
+          `http://10.0.2.2:9096/3pl/tenders/${tenderNo}/assignment`
         );
         if (response.ok) {
           const data = await response.json();

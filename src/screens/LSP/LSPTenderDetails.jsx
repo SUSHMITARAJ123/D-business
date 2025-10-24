@@ -46,7 +46,7 @@ const handlePlaceBid = async () => {
         lspMessage: message || '',
       };
 
-      const url = `http://10.0.2.2:9090/api/lsp/responses/reply/${tender.tenderNo}?companyName=${encodeURIComponent(companyNameToUse)}`;
+      const url = `http://10.0.2.2:9096/api/lsp/responses/reply/${tender.tenderNo}?companyName=${encodeURIComponent(companyNameToUse)}`;
 
       const response = await fetch(url, {
         method: 'PUT',

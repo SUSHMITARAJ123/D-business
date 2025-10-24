@@ -20,108 +20,102 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
 
   const handleContinue = async () => {
-    if (!input.trim()) {
-      Alert.alert('Error', `Please enter your ${method}.`);
-      return;
-    }
+  if (!input.trim()) {
+    Alert.alert('Error', `Please enter your ${method}.`);
+    return;
+  }
 
-    if ((method === 'email' || (method === 'mobile' && mobileMode === 'password')) && !password.trim()) {
-      Alert.alert('Error', 'Please enter your password.');
-      return;
-    }
+  if ((method === 'email' || (method === 'mobile' && mobileMode === 'password')) && !password.trim()) {
+    Alert.alert('Error', 'Please enter your password.');
+    return;
+  }
 
-    try {
-      if (method === 'email') {
-        // Email login
-        const response = await fetch('http://10.0.2.2:9090/auth/login', {
+  try {
+    let response, text, data;
+
+    if (method === 'email') {
+      response = await fetch('http://10.0.2.2:9096/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: input.trim(), password: password.trim() }),
+      });
+
+      data = await response.json();
+      console.log("📥 Email login response:", data);
+
+      if (response.status === 200 && data.role && data.companyName) {
+        await AsyncStorage.setItem('companyName', data.companyName);
+        navigation.replace(
+          data.role === 'LSP' ? 'LspDashboardScreen' : 'Dashboard',
+          { companyName: data.companyName, email: input.trim() }
+        );
+      } else {
+        Alert.alert('Error', 'Invalid email or password.');
+      }
+
+    } else if (method === 'mobile') {
+      if (mobileMode === 'password') {
+        response = await fetch('http://10.0.2.2:9096/auth/login-with-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: input.trim(), password: password.trim() }),
+          body: JSON.stringify({ mobileNumber: input.trim(), password: password.trim() }),
         });
 
-        const data = await response.json();
-        const { role, companyName } = data;
+        text = await response.text();
+        console.log("📥 Mobile login response text:", text);
 
-        if (response.status === 200 && role && companyName) {
-          await AsyncStorage.setItem('companyName', companyName);
+        if (text.toLowerCase().includes('login successful')) {
+          const roleMatch = text.match(/Welcome\s+([A-Z_]+)!/);
+          const companyMatch = text.match(/Company:\s*(.+)/);
 
-          Alert.alert('Success', 'Logged in successfully!', [
+          const role = roleMatch ? roleMatch[1] : null;
+          const companyName = companyMatch ? companyMatch[1].trim() : null;
+
+          if (role && companyName) {
+            await AsyncStorage.setItem('companyName', companyName);
+            const mobileNumber = input.trim();
+
+            if (role === 'LSP') {
+              navigation.replace('LspDashboardScreen', { companyName, mobileNumber });
+            } else if (role === 'THREE_PL') {
+              navigation.replace('Dashboard', { companyName, mobileNumber });
+            } else {
+              Alert.alert('Error', `Unrecognized role: ${role}`);
+            }
+          } else {
+            Alert.alert('Error', 'Login failed: role or company not found.');
+          }
+
+        } else {
+          Alert.alert('Error', text);
+        }
+
+      } else {
+        // OTP login flow
+        response = await fetch('http://10.0.2.2:9096/auth/login-with-mobile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobileNumber: input.trim() }),
+        });
+
+        if (response.status === 200) {
+          Alert.alert('OTP Sent', `OTP sent to ${input.trim()}`, [
             {
               text: 'OK',
-              onPress: () =>
-                navigation.navigate(
-                  role === 'LSP' ? 'LspDashboardScreen' : 'Dashboard',
-                  { companyName, email: input.trim() }
-                ),
+              onPress: () => navigation.navigate('SignInOtpVerification', { method, input: input.trim() }),
             },
           ]);
         } else {
-          Alert.alert('Error', 'Invalid email or password.');
-        }
-      } else if (method === 'mobile') {
-        if (mobileMode === 'password') {
-  const response = await fetch('http://10.0.2.2:9090/auth/login-with-password', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ mobileNumber: input.trim(), password: password.trim() }),
-});
-
-const text = await response.text();
-
-if (text.toLowerCase().includes('login successful')) {
-  const roleMatch = text.match(/Welcome\s+([A-Z_]+)!/);
-    const companyMatch = text.match(/Company:\s*(.+)/);
-
-    const role = roleMatch ? roleMatch[1] : null;
-    const companyName = companyMatch ? companyMatch[1].trim() : null;
-
-    if (response.status === 200 && role && companyName) {
-      Alert.alert("Success", "You are logged in!");
-        await AsyncStorage.setItem('companyName', companyName);
-        const mobileNumber = method === "mobile" ? input : null;
-        const email = method === "email" ? input : null;
-
-      if (role === "LSP") {
-        navigation.navigate("LspDashboardScreen", { companyName, mobileNumber, email });
-      } else if (role === "THREE_PL") {
-        navigation.navigate("Dashboard", { companyName, mobileNumber, email  });
-      } else {
-        Alert.alert("Error", `Unrecognized role: ${role}`);
-      }
-    } else {
-      Alert.alert("Verification Failed", "Invalid OTP or user role.");
-    }
-   
-} else {
-  Alert.alert('Error', text);
-}
-
-
-        } else {
-          // Mobile & OTP login
-          const response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mobileNumber: input.trim() }),
-          });
-
-          if (response.status === 200) {
-            Alert.alert('OTP Sent', `OTP sent to ${input.trim()}`, [
-              {
-                text: 'OK',
-                onPress: () => navigation.navigate('SignInOtpVerification', { method, input: input.trim() }),
-              },
-            ]);
-          } else {
-            Alert.alert('Error', 'Failed to send OTP');
-          }
+          Alert.alert('Error', 'Failed to send OTP');
         }
       }
-    } catch (error) {
-      console.error('Login Error:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
-  };
+  } catch (error) {
+    console.error('⚠️ Login Error:', error);
+    Alert.alert('Error', 'Something went wrong. Please try again.');
+  }
+};
+
 
   return (
     <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.container}>
