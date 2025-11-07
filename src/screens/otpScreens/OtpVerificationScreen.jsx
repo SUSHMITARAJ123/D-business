@@ -82,7 +82,7 @@ const OtpVerificationScreen = ({ route, navigation }) => {
     console.log('cleanotp',cleanOtp);
 
     try {
-      const response = await fetch("http://10.0.2.2:9096/auth/verify-signup-otp", {
+      const response = await fetch("http://10.0.2.2:9090/auth/verify-signup-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

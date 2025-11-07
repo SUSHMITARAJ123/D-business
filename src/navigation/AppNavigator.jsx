@@ -11,6 +11,7 @@ import SignInOtpVerification from "../screens/otpScreens/SignInOtpVerification";
 import ResetPassword from "../screens/ResetPassword";
 import DashboardScreen from "../screens/DashboardScreen";
 import CreateTenderScreen from "../screens/CreateTenderScreen";
+import DraftedTenderScreen from "../screens/DraftedTenderScreen";
 import TenderDetailsScreen from "../screens/TenderDetailsScreen";
 import OngoingTenderScreen from "../screens/OngoingTenderScreen";
 import CompletedTenderScreen from "../screens/CompletedTenderScreen";
@@ -30,6 +31,7 @@ import AssignTransporterScreen from "../screens/LSP/AssignTransporterScreen";
 
 
 
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -45,6 +47,7 @@ const AppNavigator = () => {
       <Stack.Screen name="ResetPassword" component={ResetPassword} />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="CreateTender" component={CreateTenderScreen} />
+      <Stack.Screen name="DraftedTenderScreen" component={DraftedTenderScreen} />
       <Stack.Screen name="TenderDetails" component={TenderDetailsScreen} />
       <Stack.Screen name="OngoingTenderScreen" component={OngoingTenderScreen} />
       <Stack.Screen name="CompletedTenderScreen" component={CompletedTenderScreen} />
@@ -60,7 +63,8 @@ const AppNavigator = () => {
       <Stack.Screen name="BidResult" component={BidResultScreen} />
       <Stack.Screen name="BidDetail" component={BidDetailScreen} />
       <Stack.Screen name="LSPBidDetail" component={LSPBidDetailScreen} />
-       <Stack.Screen name="AssignTransporter" component={AssignTransporterScreen} />
+      <Stack.Screen name="AssignTransporter" component={AssignTransporterScreen} />
+
  
 
 

@@ -14,6 +14,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { Picker } from '@react-native-picker/picker';
 
 const SignupScreen = () => {
   const [userType, setUserType] = useState(null);
@@ -81,7 +82,7 @@ const SignupScreen = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://10.0.2.2:9096/auth/signup', {
+      const response = await fetch('http://10.0.2.2:9090/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -209,31 +210,41 @@ const SignupScreen = () => {
                 {renderError('password')}
               </View>
 
-              <View style={styles.inputBox}>
-                <Text style={styles.label}>📍 Location</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Enter your location"
-                  placeholderTextColor="#999"
-                  multiline
-                  value={address}
-                  onChangeText={(text) => handleChange('address', text)}
-                />
-                {renderError('address')}
-              </View>
-               {userType === 'LSP' && (
-                <View style={styles.inputBox}>
-                  <Text style={styles.label}>🌍 Service Zone</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter service zone"
-                    placeholderTextColor="#999"
-                    value={serviceZone}
-                    onChangeText={(text) => handleChange('serviceZone', text.toUpperCase())}
-                  />
-                  {renderError('serviceZone')}
-                </View>
-              )}
+             {/* 📍 Location */}
+<View style={styles.inputBox}>
+  <Text style={styles.label}>📍 Location</Text>
+  <TextInput
+    style={[styles.input, styles.textArea]}
+    placeholder="Enter your location"
+    placeholderTextColor="#999"
+    multiline
+    value={address}
+    onChangeText={(text) => handleChange('address', text)}
+  />
+  {renderError('address')}
+</View>
+
+{userType === 'LSP' && (
+  <View style={styles.inputBox}>
+    <Text style={styles.label}>🌍 Service Zone</Text>
+    <View style={styles.dropdownWrapper}>
+      <Picker
+        selectedValue={serviceZone}
+        onValueChange={(value) => handleChange('serviceZone', value)}
+        style={styles.picker}
+        dropdownIconColor="#1D3557"
+      >
+        <Picker.Item label="Select Zone" value="" color="#999" />
+        <Picker.Item label="North" value="NORTH" />
+        <Picker.Item label="South" value="SOUTH" />
+        <Picker.Item label="East" value="EAST" />
+        <Picker.Item label="West" value="WEST" />
+      </Picker>
+    </View>
+    {renderError('serviceZone')}
+  </View>
+)}
+
 
               <Pressable
                 style={({ pressed }) => [
@@ -327,6 +338,18 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
+  dropdownWrapper: {
+  borderWidth: 1,
+  borderColor: '#B0BEC5',
+  borderRadius: 10,
+  backgroundColor: '#fff',
+  overflow: 'hidden',
+},
+picker: {
+  height: 50,
+  color: '#000',
+},
+
   buttonText: { color: '#1D3557', fontSize: 16, fontWeight: 'bold' },
   error: { color: '#FFCDD2', fontSize: 13, marginTop: 4 },
   backLink: { fontSize: 14, color: '#F1FAEE', fontWeight: '500' },

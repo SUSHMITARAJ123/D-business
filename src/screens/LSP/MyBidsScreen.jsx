@@ -23,7 +23,7 @@ export default function DashboardScreen() {
           setCompanyName(storedCompany);
 
           const response = await fetch(
-            `http://10.0.2.2:9096/api/lsp/responses?companyName=${storedCompany}`
+            `http://10.0.2.2:9090/api/lsp/responses?companyName=${storedCompany}`
           );
 
           const data = await response.json();

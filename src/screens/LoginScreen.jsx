@@ -34,7 +34,7 @@ const LoginScreen = ({ navigation }) => {
     let response, text, data;
 
     if (method === 'email') {
-      response = await fetch('http://10.0.2.2:9096/auth/login', {
+      response = await fetch('http://10.0.2.2:9090/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: input.trim(), password: password.trim() }),
@@ -55,7 +55,7 @@ const LoginScreen = ({ navigation }) => {
 
     } else if (method === 'mobile') {
       if (mobileMode === 'password') {
-        response = await fetch('http://10.0.2.2:9096/auth/login-with-password', {
+        response = await fetch('http://10.0.2.2:9090/auth/login-with-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobileNumber: input.trim(), password: password.trim() }),
@@ -92,7 +92,7 @@ const LoginScreen = ({ navigation }) => {
 
       } else {
         // OTP login flow
-        response = await fetch('http://10.0.2.2:9096/auth/login-with-mobile', {
+        response = await fetch('http://10.0.2.2:9090/auth/login-with-mobile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobileNumber: input.trim() }),

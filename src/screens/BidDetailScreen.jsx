@@ -65,7 +65,7 @@ export default function BidDetailScreen({ route }) {
       try {
         // Fetch bids
         const response = await fetch(
-          "http://10.0.2.2:9096/api/lsp/responses/filter-by-tender",
+          "http://10.0.2.2:9090/api/lsp/responses/filter-by-tender",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -91,7 +91,7 @@ export default function BidDetailScreen({ route }) {
 
         // Fetch assignments
         const res = await fetch(
-          `http://10.0.2.2:9096/3pl/assignments?companyName=${tender.createdBy}`
+          `http://10.0.2.2:9090/3pl/assignments?companyName=${tender.createdBy}`
         );
         if (res.ok) {
           const assignments = await res.json();
@@ -139,7 +139,7 @@ export default function BidDetailScreen({ route }) {
       };
       await AsyncStorage.setItem(`remarks_${tender.tenderNo}`, JSON.stringify(dataToSave));
 
-      await fetch("http://10.0.2.2:9096/3pl/confirm-lsp", {
+      await fetch("http://10.0.2.2:9090/3pl/confirm-lsp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -339,16 +339,36 @@ export default function BidDetailScreen({ route }) {
               ]}
             >
               <Text style={[styles.cell, { width: 150, color: '#000' }]}>{item?.lspCompanyName ?? 'N/A'}</Text>
-              <Text style={[styles.cell, { width: 100, color: '#000' }]}>{item?.price ?? '-'}</Text>
-              <Text style={[styles.cell, { width: 150, color: '#000' }]}>{item?.eta ?? '-'}</Text>
+              <Text style={[styles.cell, { width: 100, color: '#000' }]}>{item?.bidPrice?? '-'}</Text>
+              <Text style={[styles.cell, { width: 150, color: '#000' }]}>{item?.estimatedArrivalDate ?? '-'}</Text>
               <Text
                 style={[styles.cell, { width: 200, color: '#000' }]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {item?.message ?? '-'}
+                {item?.lspMessage ?? '-'}
               </Text>
-              <Text style={[styles.cell, { width: 130, color: '#000' }]}>{item?.action ?? '-'}</Text>
+             <View style={[styles.cell, { width: 130, alignItems: 'center' }]}>
+  {/* Show Confirm only for bids that have a price */}
+  {item?.bidPrice ? (
+    confirmedLsp === item.lspCompanyName ? (
+      <View style={[styles.statusBox, { backgroundColor: COLORS.green, paddingHorizontal: 10 }]}>
+        <Text style={styles.buttonText}>Confirmed</Text>
+      </View>
+    ) : (
+      <TouchableOpacity
+        style={[styles.confirmButton, { backgroundColor: COLORS.primary, paddingHorizontal: 10 }]}
+        onPress={() => openConfirmModal(item)}
+        disabled={!!confirmedLsp} 
+      >
+        <Text style={styles.buttonText}>Confirm</Text>
+      </TouchableOpacity>
+    )
+  ) : (
+    <Text style={{ color: '#777', fontStyle: 'italic' }}>No Bid</Text>
+  )}
+</View>
+
             </View>
           )}
           style={{ maxHeight: 350 }}
@@ -419,20 +439,32 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.lightGray },
 
   header: {
-    backgroundColor: COLORS.headerBg,
-    paddingVertical: 28,
-    paddingLeft: 28,
-    alignItems: "center",
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    marginBottom: 12,
-  },
-  headerText: { color: COLORS.headerText, fontSize: 20, fontWeight: "bold" },
+  backgroundColor: COLORS.headerBg,
+  paddingVertical: 28,
+  paddingHorizontal: 16, 
+  justifyContent: "center",
+  alignItems: "center",
+  borderBottomLeftRadius: 20,
+  borderBottomRightRadius: 20,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.25,
+  shadowRadius: 6,
+  elevation: 8,
+  marginBottom: 12,
+},
+headerText: {
+  color: "#fff",
+  fontSize: 18,
+  fontWeight: "700",
+  letterSpacing: 0.5,
+  textAlign: "center",
+},
+// subHeaderText: {
+//   color: "rgba(255,255,255,0.8)",
+//   fontSize: 12,
+//   marginTop: 4,
+// },
 
   actionsBar: {
     flexDirection: "row",
@@ -497,17 +529,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  confirmButton: { backgroundColor: COLORS.primary, paddingVertical: 6, borderRadius: 8, alignItems: "center" },
-  statusBox: { borderRadius: 8, paddingVertical: 6, alignItems: "center" },
+  confirmButton: {
+  backgroundColor: COLORS.primary,
+  paddingVertical: 6,
+  paddingHorizontal: 14,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+  elevation: 3,
+},
+statusBox: {
+  backgroundColor: COLORS.green,
+  paddingVertical: 6,
+  paddingHorizontal: 14,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 13 },
 
   confirmedCard: {
     marginHorizontal: 16,
-    padding: 16,
+    marginTop: 12,
+    padding: 18,
     borderRadius: 12,
     backgroundColor: "#f2faffd7",
     borderWidth: 1,
-    borderColor: "#cde6d8",
+    borderColor: "#a6aba9ff",
     marginBottom: 12,
   },
   confirmedTitle: { fontWeight: "700", fontSize: 16, marginBottom: 8, color: COLORS.green },

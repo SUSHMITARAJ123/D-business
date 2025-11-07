@@ -19,11 +19,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfileMenuSheet from '../LSP/ProfileMenuSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Enable LayoutAnimation on Android
-// if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-//   UIManager.setLayoutAnimationEnabledExperimental(true);
-// }
-
 const LspDashboardScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -70,7 +65,7 @@ const LspDashboardScreen = () => {
       let active = [], pending = [], completed = [], inprocess = [];
 
       for (const status of statuses) {
-        const res = await fetch('http://10.0.2.2:9096/api/lsp/responses/filter', {
+        const res = await fetch('http://10.0.2.2:9090/api/lsp/responses/filter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ companyName: storedCompanyName, status }),

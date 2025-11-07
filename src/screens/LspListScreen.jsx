@@ -14,9 +14,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 
 // Enable LayoutAnimation for Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+//   UIManager.setLayoutAnimationEnabledExperimental(true);
+// }
 
 const LspListScreen = () => {
   const [lspsByZone, setLspsByZone] = useState({});
@@ -25,7 +25,7 @@ const LspListScreen = () => {
 
   useEffect(() => {
     axios
-      .get('http://10.0.2.2:9096/users/lsp')
+      .get('http://10.0.2.2:9090/users/lsp')
       .then((response) => {
         const data = response.data;
         const grouped = data.reduce((acc, lsp) => {
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1D3557',
+    backgroundColor: '#12294aff',
     padding: 12,
     borderRadius: 12,
   },

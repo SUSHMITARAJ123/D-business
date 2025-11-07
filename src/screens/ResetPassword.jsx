@@ -54,7 +54,7 @@ const ResetPasswordFlow = () => {
     if (!email) return Alert.alert('Error', 'Please enter your email.');
     try {
       setIsLoading(true);
-      await axios.post('http://10.0.2.2:9096/auth/request-password-reset', { email });
+      await axios.post('http://10.0.2.2:9090/auth/request-password-reset', { email });
       Alert.alert('Success', 'OTP sent to your email.');
       setStep(2);
       setTimer(60);
@@ -69,7 +69,7 @@ const ResetPasswordFlow = () => {
     if (!otp) return Alert.alert('Error', 'Enter OTP.');
     try {
       setIsLoading(true);
-      await axios.post('http://10.0.2.2:9096/auth/verify-reset-otp', { email, otp });
+      await axios.post('http://10.0.2.2:9090/auth/verify-reset-otp', { email, otp });
       Alert.alert('Success', 'OTP verified.');
       setStep(3);
     } catch {
@@ -88,7 +88,7 @@ const ResetPasswordFlow = () => {
 
     try {
       setIsLoading(true);
-      await axios.post('http://10.0.2.2:9096/auth/reset-password', {
+      await axios.post('http://10.0.2.2:9090/auth/reset-password', {
         email,
         newPassword,
         confirmPassword,

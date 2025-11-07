@@ -53,7 +53,7 @@ export default function AssignTransporterScreen({ route, navigation }) {
 
     try {
       const response = await fetch(
-        `http://10.0.2.2:9096/lsp/assignment/${tenderNo}/vehicle-details`,
+        `http://10.0.2.2:9090/lsp/assignment/${tenderNo}/vehicle-details`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
