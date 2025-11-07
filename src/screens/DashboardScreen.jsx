@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 14,
   },
-  featureText: { fontSize: 16, fontWeight: '600' },
+  featureText: { fontSize: 18, fontWeight: '600' },
 
   modalOverlay: {
     flex: 1,
