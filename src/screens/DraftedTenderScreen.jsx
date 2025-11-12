@@ -12,40 +12,45 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 
-const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:9090' : 'http://localhost:9090';
+const BASE_URL =
+  Platform.OS === 'android' ? 'http://10.0.2.2:9090' : 'http://localhost:9090';
 
 const DraftedTenderScreen = () => {
   const route = useRoute();
+  const navigation = useNavigation();
   const { companyName } = route.params || {};
   const [draftedTenders, setDraftedTenders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (companyName) fetchDraftedTenders();
+  //Fetch drafted tenders on mount & when returning from edit screen
+  useFocusEffect(
+    React.useCallback(() => {
+      if (companyName) fetchDraftedTenders();
+    }, [companyName])
+  );
 
+  useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, [companyName]);
+  }, []);
 
+  //Fetch drafted tenders
   const fetchDraftedTenders = async () => {
     try {
-      console.log('Fetching drafted tenders for:', companyName);
+      setLoading(true);
       const response = await fetch(`${BASE_URL}/3PL/tenders/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyName, status: 'DRAFT' }),
       });
-
-      console.log('Response status:', response.status);
-      const text = await response.text();
-      console.log('Raw response:', text);
 
       if (response.status === 404) {
         setDraftedTenders([]);
@@ -54,7 +59,7 @@ const DraftedTenderScreen = () => {
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const data = JSON.parse(text);
+      const data = await response.json();
       setDraftedTenders(data);
     } catch (error) {
       console.error('Error fetching drafted tenders:', error);
@@ -64,20 +69,15 @@ const DraftedTenderScreen = () => {
     }
   };
 
+  // Publish Tender
   const publishTender = async (tenderNo) => {
     try {
       setPublishing(true);
-      console.log('Publishing tender:', tenderNo);
-
       const response = await fetch(`${BASE_URL}/3PL/tenders/drafts/${tenderNo}/publish`, {
         method: 'PUT',
       });
 
-      console.log('Publish response status:', response.status);
-      const text = await response.text();
-      console.log('Publish response:', text);
-
-      if (response.status === 200 || response.status === 201) {
+      if (response.ok) {
         Alert.alert('Success', 'Tender published successfully!');
         fetchDraftedTenders();
       } else if (response.status === 404) {
@@ -93,36 +93,103 @@ const DraftedTenderScreen = () => {
     }
   };
 
+  // Delete Tender
+  const deleteTender = async (tenderNo) => {
+    Alert.alert('Delete Tender', 'Are you sure you want to delete this drafted tender?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setDeleting(true);
+            const response = await fetch(`${BASE_URL}/3PL/tenders/drafts/${tenderNo}`, {
+              method: 'DELETE',
+            });
+
+            if (response.ok) {
+              Alert.alert('Deleted', 'Tender deleted successfully.');
+              fetchDraftedTenders();
+            } else {
+              Alert.alert('Error', `Failed to delete tender (${response.status}).`);
+            }
+          } catch (error) {
+            console.error('Error deleting tender:', error);
+            Alert.alert('Error', 'Something went wrong while deleting the tender.');
+          } finally {
+            setDeleting(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  //Navigate to Edit Tender 
+  const editTender = (tender) => {
+    navigation.navigate('CreateTender', {
+      tender,
+      isEditing: true,
+      companyName,
+    });
+  };
+
+  //Render each tender card
   const renderTender = ({ item }) => (
     <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-      <LinearGradient colors={['#E0F2F1', '#fff']} style={styles.cardGradient}>
+      <LinearGradient colors={['#f9fafaff', '#fff']} style={styles.cardGradient}>
         <View style={styles.cardHeader}>
           <Icon name="file-document-edit-outline" size={22} color="#1D3557" />
           <Text style={styles.tenderNo}>{item.tenderNo}</Text>
         </View>
 
         <View style={styles.cardContent}>
-          <Text style={styles.text}><Icon name="map-marker" size={14} /> From: {item.sourceLocation}</Text>
-          <Text style={styles.text}><Icon name="map-marker-outline" size={14} /> To: {item.destinationLocation}</Text>
-          <Text style={styles.text}><Icon name="calendar" size={14} /> Pickup: {item.pickupDate}</Text>
-          <Text style={styles.text}><Icon name="calendar-check" size={14} /> Drop: {item.dropDate}</Text>
-          <Text style={styles.text}><Icon name="map-legend" size={14} /> Zone: {item.tenderZone}</Text>
-          <Text style={[styles.text, styles.priceText]}><Icon name="currency-inr" size={14} /> {item.tenderPrice}</Text>
+          <Text style={styles.text}>
+            <Icon name="map-marker" size={14} /> From: {item.sourceLocation}
+          </Text>
+          <Text style={styles.text}>
+            <Icon name="map-marker-outline" size={14} /> To: {item.destinationLocation}
+          </Text>
+          <Text style={styles.text}>
+            <Icon name="calendar" size={14} /> Pickup: {item.pickupDate}
+          </Text>
+          <Text style={styles.text}>
+            <Icon name="calendar-check" size={14} /> Drop: {item.dropDate}
+          </Text>
+          <Text style={styles.text}>
+            <Icon name="map-legend" size={14} /> Zone: {item.tenderZone}
+          </Text>
+          <Text style={[styles.text, styles.priceText]}>
+            <Icon name="currency-inr" size={14} /> {item.tenderPrice}
+          </Text>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.publishButton, publishing && { opacity: 0.6 }]}
-          disabled={publishing}
-          onPress={() => publishTender(item.tenderNo)}>
-          <LinearGradient
-            colors={publishing ? ['#bbb', '#999'] : ['#1D3557', '#457B9D']}
-            style={styles.buttonGradient}>
-            <Text style={styles.buttonText}>
-              {publishing ? 'Publishing...' : 'Publish Tender'}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[styles.actionButton, { backgroundColor: '#cb6e75ff' }]}
+            disabled={deleting}
+            onPress={() => deleteTender(item.tenderNo)}>
+            <Icon name="delete-outline" color="#fff" size={18} />
+            <Text style={styles.actionText}>Delete</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[styles.actionButton, { backgroundColor: '#F4A261' }]}
+            onPress={() => editTender(item)}>
+            <Icon name="pencil-outline" color="#fff" size={18} />
+            <Text style={styles.actionText}>Edit</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[styles.actionButton, { backgroundColor: '#1D3557' }]}
+            disabled={publishing}
+            onPress={() => publishTender(item.tenderNo)}>
+            <Icon name="upload-outline" color="#fff" size={18} />
+            <Text style={styles.actionText}>{publishing ? '...' : 'Publish'}</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
     </Animated.View>
   );
@@ -164,11 +231,11 @@ const DraftedTenderScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 18, paddingTop: 40 },
   headerContainer: { alignItems: 'center', marginBottom: 12 },
-  headerTitle: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   headerLine: {
     width: 80,
     height: 3,
-    backgroundColor: '#A8DADC',
+    backgroundColor: '#e0e6e6ff',
     marginTop: 6,
     borderRadius: 10,
   },
@@ -184,32 +251,30 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   cardGradient: { padding: 16 },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  tenderNo: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#1D3557',
-    marginLeft: 6,
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  tenderNo: { fontWeight: '700', fontSize: 18, color: '#1D3557', marginLeft: 6 },
   cardContent: { marginBottom: 12 },
-  text: { fontSize: 14, color: '#333', marginVertical: 2 },
+  text: { fontSize: 15, color: '#333', marginVertical: 2 },
   priceText: { fontWeight: 'bold', color: '#1D3557', marginTop: 4 },
-  publishButton: {
-    borderRadius: 10,
-    overflow: 'hidden',
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
-  buttonGradient: {
-    paddingVertical: 10,
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginHorizontal: 4,
   },
-  buttonText: {
+  actionText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 14,
+    marginLeft: 4,
   },
   noData: {
     textAlign: 'center',
@@ -218,11 +283,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 10,
   },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: '#fff', marginTop: 10, fontSize: 15 },
 });

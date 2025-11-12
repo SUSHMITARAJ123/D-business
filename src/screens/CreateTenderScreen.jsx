@@ -32,7 +32,7 @@ const CreateTenderScreen = ({ navigation }) => {
   });
 
   const route = useRoute();
-  const { companyName } = route.params || {};
+  const { companyName, tender, isEditing } = route.params || {};
 
   const [isReviewing, setIsReviewing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -48,6 +48,24 @@ const CreateTenderScreen = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+  if (isEditing && tender) {
+    setForm({
+      sourceLocation: tender.sourceLocation || '',
+      destinationLocation: tender.destinationLocation || '',
+      pickupDate: tender.pickupDate || '',
+      dropDate: tender.dropDate || '',
+      deadline: tender.deadline || '',
+      weight: tender.weight ? tender.weight.toString() : '',
+      tenderPrice: tender.tenderPrice ? tender.tenderPrice.toString() : '',
+      specialInstructions: tender.specialInstructions || '',
+      tenderZone: tender.tenderZone || '',
+      broadcastToAllZones: tender.broadcastToAllZones || false,
+    });
+  }
+}, [isEditing, tender]);
+
 
   const handleChange = (key, value) => {
     setForm({ ...form, [key]: value });
@@ -92,60 +110,52 @@ const CreateTenderScreen = ({ navigation }) => {
   };
 
   const handleSubmit = async (saveAsDraft) => {
-    if (!validateForm(saveAsDraft)) return;
-    if (!companyName) {
-      Alert.alert('Error', 'Company name not found. Please login again.');
-      return;
-    }
+  if (!validateForm(saveAsDraft)) return;
+  if (!companyName) {
+    Alert.alert('Error', 'Company name not found. Please login again.');
+    return;
+  }
 
-    try {
-      const encodedCompanyName = encodeURIComponent(companyName);
-      const response = await fetch(
-        `http://10.0.2.2:9090/3PL/tenders/create?companyName=${encodedCompanyName}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...form,
-            weight: parseFloat(form.weight),
-            tenderPrice: parseFloat(form.tenderPrice),
-            saveAsDraft,
-          }),
-        }
+  try {
+    const encodedCompanyName = encodeURIComponent(companyName);
+    const url = isEditing
+  ? `http://10.0.2.2:9090/3PL/tenders/${tender.tenderNo}`
+  : `http://10.0.2.2:9090/3PL/tenders/create?companyName=${encodedCompanyName}`;
+
+    const method = isEditing ? 'PUT' : 'POST';
+
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...form,
+        weight: parseFloat(form.weight),
+        tenderPrice: parseFloat(form.tenderPrice),
+        saveAsDraft,
+      }),
+    });
+
+    if (response.status === 201 || response.status === 200) {
+      const tenderData = await response.json();
+      Alert.alert(
+        'Success',
+        isEditing
+          ? 'Tender updated successfully!'
+          : saveAsDraft
+          ? 'Tender saved as draft successfully'
+          : 'Tender published successfully'
       );
-
-      if (response.status === 201) {
-        const tenderData = await response.json();
-        Alert.alert(
-          'Success',
-          saveAsDraft
-            ? 'Tender saved as draft successfully'
-            : 'Tender published successfully'
-        );
-        setForm({
-          sourceLocation: '',
-          destinationLocation: '',
-          pickupDate: '',
-          dropDate: '',
-          deadline: '',
-          weight: '',
-          tenderPrice: '',
-          specialInstructions: '',
-          tenderZone: '',
-          broadcastToAllZones: false,
-        });
-        setIsReviewing(false);
-        navigation.navigate('TenderDetails', { tender: tenderData });
-      } else {
-        const errorText = await response.text();
-        console.error('Server Error:', errorText);
-        Alert.alert('Error', 'Failed to create tender');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', error.message);
+      navigation.goBack();
+    } else {
+      const errorText = await response.text();
+      console.error('Server Error:', errorText);
+      Alert.alert('Error', 'Failed to save tender');
     }
-  };
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Error', error.message);
+  }
+};
 
   const renderInput = (label, key, iconName, keyboardType = 'default') => (
     <View style={styles.inputContainer}>

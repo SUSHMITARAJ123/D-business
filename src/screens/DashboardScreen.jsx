@@ -97,7 +97,7 @@ const DashboardScreen = ({ navigation }) => {
           <Icon name="menu" size={28} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Hi, {companyName}
+          Welcome, {companyName}
         </Text>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => navigation.navigate('BidsNotificationScreen')}>
@@ -117,10 +117,10 @@ const DashboardScreen = ({ navigation }) => {
 
       {/* Scroll Content */}
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Overview</Text>
+        {/* <Text style={[styles.sectionTitle, { color: theme.text }]}>Overview</Text> */}
 
         {loading ? (
-          <ActivityIndicator size="large" color="#fff" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#ffffffff" style={{ marginTop: 40 }} />
         ) : (
           <View style={styles.statsRow}>
             {[
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   statCard: {
     width: '48%',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#f6f9fbff',
     paddingVertical: 18,
     paddingHorizontal: 16,
     marginBottom: 14,
