@@ -32,6 +32,7 @@ import AssignTransporterScreen from "../screens/LSP/AssignTransporterScreen";
 
 
 
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -64,6 +65,7 @@ const AppNavigator = () => {
       <Stack.Screen name="BidDetail" component={BidDetailScreen} />
       <Stack.Screen name="LSPBidDetail" component={LSPBidDetailScreen} />
       <Stack.Screen name="AssignTransporter" component={AssignTransporterScreen} />
+
 
  
 

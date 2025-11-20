@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,39 +9,32 @@ import {
   Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const NotificationsScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
 
-  // Dummy data for now.
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      title: 'New Tender Broadcasted',
-      message: 'A new tender has been broadcasted by 3PL KZ Logistics.',
-      time: '5 mins ago',
-    },
-    {
-      id: '2',
-      title: 'Tender Update',
-      message: 'Your bid was accepted for Tender #tender-del-pun-14-06-2025.',
-      time: '1 hour ago',
-    },
-  ]);
-
-  useEffect(() => {
-   //..............
-  }, []);
+  const notifications = route?.params?.notifications ?? [];
 
   const renderItem = ({ item }) => (
     <View style={styles.notificationCard}>
       <View style={styles.notificationHeader}>
-        <Icon name="bell-ring" size={24} color="#1D3557" />
-        <Text style={styles.notificationTitle}>{item.title}</Text>
+        <Icon
+          name={item.type === 'private' ? 'bell-ring' : 'broadcast'}
+          size={24}
+          color="#1D3557"
+        />
+        <Text style={styles.notificationTitle}>
+          {item.title || (item.type === 'private' ? 'Private Message' : 'New Tender')}
+        </Text>
       </View>
-      <Text style={styles.notificationMessage}>{item.message}</Text>
-      <Text style={styles.notificationTime}>{item.time}</Text>
+      <Text style={styles.notificationMessage}>{item.message || item.text}</Text>
+      <Text style={styles.notificationTime}>
+        {item.createdAt
+          ? new Date(item.createdAt).toLocaleString()
+          : ''}
+      </Text>
     </View>
   );
 
@@ -53,15 +46,22 @@ const NotificationsScreen = () => {
           <Icon name="arrow-left" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Notifications</Text>
-        <View style={{ width: 26 }} /> 
+        <View style={{ width: 26 }} />
       </View>
 
-      <FlatList
-        data={notifications}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-      />
+      {notifications.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Icon name="bell-off-outline" size={40} color="#9CA3AF" />
+          <Text style={styles.emptyText}>No notifications yet</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
     </View>
   );
 };
@@ -122,5 +122,16 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: 13,
     color: '#888',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 80,
+  },
+  emptyText: {
+    marginTop: 8,
+    fontSize: 16,
+    color: '#9CA3AF',
   },
 });

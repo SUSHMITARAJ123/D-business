@@ -18,6 +18,12 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfileMenuSheet from '../LSP/ProfileMenuSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createTenderWsClient } from '../services/tenderWebSocket';
+
+// ✅ Enable LayoutAnimation on Android (minimal global change)
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const LspDashboardScreen = () => {
   const navigation = useNavigation();
@@ -36,6 +42,12 @@ const LspDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const profileMenuRef = useRef(null);
 
+  const wsClientRef = useRef(null);
+  const [wsBanner, setWsBanner] = useState(null);
+
+  // 🔔 store notifications in dashboard
+  const [notifications, setNotifications] = useState([]);
+
   const uniqueByTenderNo = (tenders) => {
     const map = new Map();
     for (const tender of tenders) {
@@ -45,7 +57,6 @@ const LspDashboardScreen = () => {
     }
     return Array.from(map.values());
   };
-
 
   const fetchData = useCallback(async () => {
     try {
@@ -70,35 +81,38 @@ const LspDashboardScreen = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ companyName: storedCompanyName, status }),
         });
-        
-        const storedResults = await AsyncStorage.getItem("bidResults");
-const bidResults = storedResults ? JSON.parse(storedResults) : [];
+
+        const storedResults = await AsyncStorage.getItem('bidResults');
+        const bidResults = storedResults ? JSON.parse(storedResults) : [];
+
         if (res.ok) {
           const contentType = res.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const data = await res.json();
-            const mapped = data.map(tender => {
-  const match = bidResults.find(
-    b => b.tenderNo === tender.tender_no && b.lspCompanyName === tender.company_name
-  );
+            const mapped = data.map((tender) => {
+              const match = bidResults.find(
+                (b) =>
+                  b.tenderNo === tender.tender_no &&
+                  b.lspCompanyName === tender.company_name
+              );
 
-  return {
-    ...tender,
-    companyName: storedCompanyName,
-    selection_status: match ? match.selection_status : "PENDING",
-  };
-});
+              return {
+                ...tender,
+                companyName: storedCompanyName,
+                selection_status: match ? match.selection_status : 'PENDING',
+              };
+            });
 
             if (status === 'Active') active = active.concat(mapped);
             else if (status === 'Pending') pending = pending.concat(mapped);
             else if (status === 'Completed') completed = completed.concat(mapped);
-           else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
+            else if (status === 'INPROCESS') inprocess = inprocess.concat(mapped);
           }
         }
       }
 
-      const inprocessMap = new Set(inprocess.map(t => t.tenderNo));
-      const filteredActive = active.filter(t => !inprocessMap.has(t.tenderNo));
+      const inprocessMap = new Set(inprocess.map((t) => t.tenderNo));
+      const filteredActive = active.filter((t) => !inprocessMap.has(t.tenderNo));
 
       setActiveTenders(uniqueByTenderNo(filteredActive));
       setPendingTenders(uniqueByTenderNo(pending));
@@ -130,41 +144,130 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
 
   const toggleExpand = (tenderNo) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedTenders(prev => ({
+    setExpandedTenders((prev) => ({
       ...prev,
       [tenderNo]: !prev[tenderNo],
     }));
   };
 
+  // 🔌 WebSocket + notifications
+  useEffect(() => {
+    const setupWs = async () => {
+      try {
+        const companyName = await AsyncStorage.getItem('companyName');
+        if (!companyName) {
+          console.warn('No companyName in storage, skipping WebSocket connect');
+          return;
+        }
+
+        const baseUrl = 'http://10.0.2.2:9090'; // 
+        console.log('🔌 Connecting WS for company:', companyName);
+
+        const client = createTenderWsClient(
+          baseUrl,
+          companyName,
+          // onPrivateMessage
+          (msgBody) => {
+            console.log('PRIVATE WS MESSAGE RECEIVED:', msgBody); // 
+            const message = msgBody || 'New private message';
+
+            setWsBanner({ type: 'private', text: message });
+
+            // 🔔 add to notifications list
+            setNotifications((prev) => [
+              {
+                id: Date.now().toString() + Math.random().toString(16).slice(2),
+                type: 'private',
+                text: message,
+                createdAt: new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+
+            // If message is about bid/tender, refresh data
+            if (
+              message.toLowerCase().includes('bid') ||
+              message.toLowerCase().includes('tender')
+            ) {
+              fetchData();
+            }
+
+            setTimeout(() => setWsBanner(null), 5000);
+          },
+          // onPublicTender
+          (msgBody) => {
+            console.log('📡 PUBLIC WS MESSAGE RECEIVED:', msgBody); // ✅ extra log
+            const message = msgBody || 'New tender available';
+
+            setWsBanner({ type: 'public', text: message });
+
+            // 🔔 add to notifications list
+            setNotifications((prev) => [
+              {
+                id: Date.now().toString() + Math.random().toString(16).slice(2),
+                type: 'public',
+                text: message,
+                createdAt: new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+
+            // Public new tender – refresh active list
+            fetchData();
+            setTimeout(() => setWsBanner(null), 5000);
+          }
+        );
+
+        wsClientRef.current = client;
+      } catch (e) {
+        console.error('WS setup error:', e);
+      }
+    };
+
+    setupWs();
+
+    // cleanup on unmount
+    return () => {
+      if (wsClientRef.current) {
+        console.log('🔌 Deactivating WS client');
+        wsClientRef.current.deactivate();
+        wsClientRef.current = null;
+      }
+    };
+  }, [fetchData]);
+
   const renderTenderItem = ({ item }) => {
     const isExpanded = expandedTenders[item.tenderNo];
 
-     const handleDetailsPress = () => {
-    switch (selectedStatus.toUpperCase()) {
-      case 'ACTIVE':
-      case 'PENDING':
-        navigation.navigate('LSPTenderDetails', { tender: item });
-        break;
+    const handleDetailsPress = () => {
+      switch (selectedStatus.toUpperCase()) {
+        case 'ACTIVE':
+        case 'PENDING':
+          navigation.navigate('LSPTenderDetails', { tender: item });
+          break;
 
-      case 'COMPLETED':
-        Alert.alert("Tender Completed", "✅ This tender has already been completed.");
-        break;
+        case 'COMPLETED':
+          Alert.alert('Tender Completed', '✅ This tender has already been completed.');
+          break;
 
-      case 'INPROCESS': 
-        if (item.selectionStatus === 'CONFIRMED') {
-          Alert.alert("Tender Status", "✅ Your bid is accepted and confirmed!");
-        } else if (item.selectionStatus === 'REJECTED') {
-          Alert.alert("Tender Status", "❌ Not selected this time. Next tender may be yours, keep eye on the notifications.");
-        } else {
-          Alert.alert("Tender Status", "⏳ Waiting for 3PL response.");
-        }
-        break;
+        case 'INPROCESS':
+          if (item.selectionStatus === 'CONFIRMED') {
+            Alert.alert('Tender Status', '✅ Your bid is accepted and confirmed!');
+          } else if (item.selectionStatus === 'REJECTED') {
+            Alert.alert(
+              'Tender Status',
+              '❌ Not selected this time. Next tender may be yours, keep eye on the notifications.'
+            );
+          } else {
+            Alert.alert('Tender Status', '⏳ Waiting for 3PL response.');
+          }
+          break;
 
-      default:
-        Alert.alert("Status Unknown", "⚠️ Unable to determine the tender status.");
-        break;
-    }
-  };
+        default:
+          Alert.alert('Status Unknown', '⚠️ Unable to determine the tender status.');
+          break;
+      }
+    };
 
     return (
       <TouchableOpacity onPress={() => toggleExpand(item.tenderNo)} activeOpacity={0.85}>
@@ -199,39 +302,46 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
                 <Icon name="currency-inr" size={18} color="#1D3557" />
                 <Text style={styles.tenderInfo}>Price: ₹{item.tenderPrice}</Text>
               </View>
-               
-               <View style={styles.tenderRow}>
-              <Icon name="information" size={18} color="#1D3557" />
-              <Text style={styles.tenderInfo}>
-                Bid Status: {item.selectionStatus}
-              </Text>
-            </View>
-            
-            {selectedStatus.toUpperCase() !== "COMPLETED" && (
-              <>
-                <TouchableOpacity 
-                  onPress={handleDetailsPress} 
-                  style={styles.detailsButton}
-                >
-                  <Text style={styles.detailsButtonText}>View Details</Text>
-                </TouchableOpacity>
 
-                {item.selectionStatus === "CONFIRMED" && (
+              <View style={styles.tenderRow}>
+                <Icon name="information" size={18} color="#1D3557" />
+                <Text style={styles.tenderInfo}>
+                  Bid Status: {item.selectionStatus}
+                </Text>
+              </View>
+
+              {selectedStatus.toUpperCase() !== 'COMPLETED' && (
+                <>
                   <TouchableOpacity
-                    onPress={() => navigation.navigate("AssignTransporter", { tenderNo: item.tenderNo })}
-                    style={[styles.detailsButton, { backgroundColor: "green", marginTop: 8 }]}
+                    onPress={handleDetailsPress}
+                    style={styles.detailsButton}
                   >
-                    <Text style={styles.detailsButtonText}>Assign Vehicles</Text>
+                    <Text style={styles.detailsButtonText}>View Details</Text>
                   </TouchableOpacity>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-};
+
+                  {item.selectionStatus === 'CONFIRMED' && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate('AssignTransporter', {
+                          tenderNo: item.tenderNo,
+                        })
+                      }
+                      style={[
+                        styles.detailsButton,
+                        { backgroundColor: 'green', marginTop: 8 },
+                      ]}
+                    >
+                      <Text style={styles.detailsButtonText}>Assign Vehicles</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const getCurrentTenders = () => {
     if (selectedStatus === 'Active') return activeTenders;
@@ -243,11 +353,58 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1D3557" />
+
+      {/* 🔔 WebSocket banner */}
+      {wsBanner && (
+        <View
+          style={[
+            styles.wsBanner,
+            wsBanner.type === 'private' ? styles.wsBannerPrivate : styles.wsBannerPublic,
+          ]}
+        >
+          <Icon
+            name={wsBanner.type === 'private' ? 'bell-ring-outline' : 'broadcast'}
+            size={18}
+            color="#fff"
+          />
+          <Text style={styles.wsBannerText} numberOfLines={2}>
+            {wsBanner.text}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.header}>
         <Text style={styles.headerText}>LSP Dashboard</Text>
-        <TouchableOpacity onPress={() => profileMenuRef.current?.open()} activeOpacity={0.7}>
-          <Icon name="account-circle" size={28} color="#fff" style={styles.icon} />
-        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* 🔔 Notifications icon */}
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('Notifications', {
+                notifications,
+              })
+            }
+            activeOpacity={0.7}
+            style={{ marginRight: 16 }}
+          >
+            <Icon name="bell-outline" size={26} color="#fff" />
+            {notifications.length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {notifications.length > 9 ? '9+' : notifications.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Profile icon */}
+          <TouchableOpacity
+            onPress={() => profileMenuRef.current?.open()}
+            activeOpacity={0.7}
+          >
+            <Icon name="account-circle" size={28} color="#fff" style={styles.icon} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -294,7 +451,11 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#1D3557" style={{ marginTop: 40 }} />
+          <ActivityIndicator
+            size="large"
+            color="#1D3557"
+            style={{ marginTop: 40 }}
+          />
         ) : (
           <FlatList
             data={getCurrentTenders()}
@@ -306,7 +467,7 @@ const bidResults = storedResults ? JSON.parse(storedResults) : [];
                 No {selectedStatus} tenders to display.
               </Text>
             }
-            scrollEnabled={false} 
+            scrollEnabled={false}
           />
         )}
       </ScrollView>
@@ -333,7 +494,7 @@ export default LspDashboardScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB', 
+    backgroundColor: '#F9FAFB',
   },
   header: {
     backgroundColor: '#1D3557',
@@ -449,5 +610,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.4,
+  },
+  wsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingTop:
+      Platform.OS === 'android'
+        ? (StatusBar.currentHeight || 0) + 4
+        : 14,
+  },
+  wsBannerPrivate: {
+    backgroundColor: '#16A34A',
+  },
+  wsBannerPublic: {
+    backgroundColor: '#2563EB',
+  },
+  wsBannerText: {
+    color: '#fff',
+    marginLeft: 8,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 999,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

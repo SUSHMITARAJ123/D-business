@@ -12,10 +12,11 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/blur": "^4.4.1",
-    "@react-native-community/datetimepicker": "^8.4.3",
+    "@react-native-community/datetimepicker": "^8.5.0",
     "@react-native-picker/picker": "^2.11.2",
     "@react-navigation/native": "^7.0.19",
     "@react-navigation/stack": "^7.2.3",
+    "@stomp/stompjs": "^7.2.1",
     "axios": "^0.27.2",
     "expo-linear-gradient": "^14.0.2",
     "lodash": "^4.17.21",
@@ -43,7 +44,9 @@
     "react-native-swiper": "^1.6.0",
     "react-native-vector-icons": "^10.3.0",
     "react-native-video": "^6.13.0",
-    "react-navigation": "^5.0.0"
+    "react-navigation": "^5.0.0",
+    "socket.io-client": "^4.8.1",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

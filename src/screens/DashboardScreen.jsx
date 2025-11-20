@@ -1,24 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  StatusBar, Modal, Switch, ActivityIndicator
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
+  Modal,
+  Switch,
+  ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useRoute } from '@react-navigation/native';
 
+// 🔌 NEW: import WebSocket client creator
+import { createTenderWsClient } from './services/tenderWebSocket';
+
 const DashboardScreen = ({ navigation }) => {
   const route = useRoute();
   const { companyName, mobileNumber: userMobile, email: userEmail } = route.params;
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [tenderStats, setTenderStats] = useState({
-    total: 0, ongoing: 0, completed: 0, pending: 0, drafted: 0,
+    total: 0,
+    ongoing: 0,
+    completed: 0,
+    pending: 0,
+    drafted: 0,
   });
 
-  const fetchTendersByStatus = async (status) => {
+  // 🔔 NEW: WebSocket notifications
+  const [privateNotifications, setPrivateNotifications] = useState([]);
+  const [publicNotifications, setPublicNotifications] = useState([]);
+  const wsClientRef = useRef(null);
+
+  const fetchTendersByStatus = async status => {
     try {
       const res = await fetch('http://10.0.2.2:9090/3PL/tenders/search', {
         method: 'POST',
@@ -51,13 +72,56 @@ const DashboardScreen = ({ navigation }) => {
         fetchTendersByStatus('Draft'),
       ]);
       setTenderStats({
-        ongoing, completed, pending, drafted,
+        ongoing,
+        completed,
+        pending,
+        drafted,
         total: ongoing + completed + pending + drafted,
       });
       setLoading(false);
     };
     loadStats();
   }, []);
+
+  // 🔌 NEW: connect WebSocket when dashboard mounts
+  useEffect(() => {
+    if (!companyName) return;
+
+    console.log('🔌 Connecting WebSocket for company:', companyName);
+
+    const client = createTenderWsClient(
+      companyName,
+      // PRIVATE: 3PL receives "New bid on Tender X" here
+      msg => {
+        setPrivateNotifications(prev => [
+          {
+            id: Date.now().toString() + Math.random(),
+            text: msg,
+          },
+          ...prev,
+        ]);
+      },
+      // PUBLIC: for /topic/new-tenders or similar
+      msg => {
+        setPublicNotifications(prev => [
+          {
+            id: Date.now().toString() + Math.random(),
+            text: msg,
+          },
+          ...prev,
+        ]);
+      }
+    );
+
+    wsClientRef.current = client;
+
+    return () => {
+      console.log('🔌 Disconnecting WebSocket for company:', companyName);
+      if (wsClientRef.current) {
+        wsClientRef.current.deactivate();
+      }
+    };
+  }, [companyName]);
 
   const handleLogout = () => {
     setMenuVisible(false);
@@ -87,6 +151,20 @@ const DashboardScreen = ({ navigation }) => {
         shadow: '#000',
       };
 
+  const renderPrivateNotification = ({ item }) => (
+    <View style={styles.privateCard}>
+      <Text style={styles.privateLabel}>Bid Notification</Text>
+      <Text style={styles.privateText}>{item.text}</Text>
+    </View>
+  );
+
+  const renderPublicNotification = ({ item }) => (
+    <View style={styles.publicCard}>
+      <Text style={styles.publicLabel}>Announcement</Text>
+      <Text style={styles.publicText}>{item.text}</Text>
+    </View>
+  );
+
   return (
     <LinearGradient colors={theme.background} style={styles.gradient}>
       <StatusBar barStyle="light-content" backgroundColor={theme.background[0]} />
@@ -96,9 +174,7 @@ const DashboardScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <Icon name="menu" size={28} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Welcome, {companyName}
-        </Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{companyName}</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => navigation.navigate('BidsNotificationScreen')}>
             <Icon name="notifications-none" size={26} color={theme.text} />
@@ -117,8 +193,6 @@ const DashboardScreen = ({ navigation }) => {
 
       {/* Scroll Content */}
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* <Text style={[styles.sectionTitle, { color: theme.text }]}>Overview</Text> */}
-
         {loading ? (
           <ActivityIndicator size="large" color="#ffffffff" style={{ marginTop: 40 }} />
         ) : (
@@ -136,6 +210,29 @@ const DashboardScreen = ({ navigation }) => {
               </View>
             ))}
           </View>
+        )}
+
+        {/* 🔔 NEW: Live WebSocket Notifications section */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Live Bid Notifications</Text>
+        <FlatList
+          data={privateNotifications}
+          keyExtractor={item => item.id}
+          renderItem={renderPrivateNotification}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No live notifications yet. Bids will appear here in real time.</Text>
+          }
+        />
+
+        {/* Optional: Public broadcast messages */}
+        {publicNotifications.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Announcements</Text>
+            <FlatList
+              data={publicNotifications}
+              keyExtractor={item => item.id}
+              renderItem={renderPublicNotification}
+            />
+          </>
         )}
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Actions</Text>
@@ -235,6 +332,45 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   featureText: { fontSize: 18, fontWeight: '600' },
+
+  // 🔔 NEW styles
+  emptyText: {
+    color: '#e5e7eb',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  privateCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#22c55e',
+  },
+  privateLabel: {
+    color: '#bbf7d0',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  privateText: {
+    color: '#e5e7eb',
+  },
+  publicCard: {
+    backgroundColor: '#020617',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  publicLabel: {
+    color: '#bfdbfe',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  publicText: {
+    color: '#e5e7eb',
+  },
 
   modalOverlay: {
     flex: 1,
