@@ -1,0 +1,358 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { Picker } from '@react-native-picker/picker';
+
+const SignupScreen = () => {
+  const [userType, setUserType] = useState(null);
+  const [companyName, setCompanyname] = useState('');
+  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [address, setAddress] = useState('');
+  const [serviceZone, setServiceZone] = useState('');
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
+
+  const handleChange = (field, value) => {
+    switch (field) {
+      case 'companyName':
+        setCompanyname(value);
+        break;
+      case 'email':
+        setEmail(value);
+        break;
+      case 'mobile':
+        setMobile(value);
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      case 'address':
+        setAddress(value);
+        break;
+        case 'serviceZone':
+        setServiceZone(value);
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const validateFields = () => {
+    const newErrors = {};
+    if (!companyName.trim()) newErrors.companyName = 'Company name is required';
+    if (!email.trim()) newErrors.email = 'Email is required';
+    if (!mobile.trim()) newErrors.mobile = 'Mobile number is required';
+    if (!password.trim()) newErrors.password = 'Password is required';
+    if (!address.trim()) newErrors.address = 'Location is required';
+    if (userType === 'LSP' && !serviceZone.trim())
+      newErrors.serviceZone = 'Service zone is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSignup = async () => {
+    if (!validateFields()) return;
+
+    const payload = {
+      companyName,
+      email,
+      mobileNumber: mobile,
+      location: address,
+      role: userType,
+      password,
+      serviceZone: userType === 'LSP' ? serviceZone : null,
+    };
+
+    try {
+      setLoading(true);
+      const response = await fetch('http://10.0.2.2:9090/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const rawText = await response.text();
+      setLoading(false);
+
+      if (response.status === 201) {
+        await AsyncStorage.setItem('companyName', companyName);
+        await AsyncStorage.setItem('email', email);
+        await AsyncStorage.setItem('mobile', mobile);
+        await AsyncStorage.setItem('userType', userType);
+        if (userType === 'LSP') {
+          await AsyncStorage.setItem('serviceZone', serviceZone);
+        }
+        Alert.alert('Success', 'OTP sent successfully.', [
+          {
+            text: 'OK',
+            onPress: () =>
+              navigation.navigate('OtpVerification', {
+                companyName,
+                email,
+                mobile,
+                userType,
+              }),
+          },
+        ]);
+      } else {
+        Alert.alert('Signup Failed', rawText || 'Please try again later.');
+      }
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Error', 'Unable to connect to the server.');
+      console.error('Signup error:', error);
+    }
+  };
+
+  const renderError = (field) =>
+    errors[field] && <Text style={styles.error}>{errors[field]}</Text>;
+
+  return (
+    <LinearGradient colors={['#1D3557', '#457B9D']} style={styles.gradient}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          {!userType ? (
+            <>
+              <Text style={styles.header}>Get Started</Text>
+              <Text style={styles.subHeader}>Choose your role:</Text>
+
+              <Pressable
+                style={[styles.selectButton, userType === '3PL' && styles.selected]}
+                onPress={() => setUserType('3PL')}
+              >
+                <Text style={styles.selectText}>🚛 3rd Party Logistic</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.selectButton, userType === 'LSP' && styles.selected]}
+                onPress={() => setUserType('LSP')}
+              >
+                <Text style={styles.selectText}>🏢 Logistic Service Provider</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.header}>Create Account</Text>
+              <Text style={styles.subHeader}>
+                {userType === '3PL' ? '3rd Party Logistics' : 'Logistic Service Provider'}
+              </Text>
+
+              <View style={styles.inputBox}>
+                <Text style={styles.label}>👤 Company Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your company name"
+                  placeholderTextColor="#999"
+                  value={companyName}
+                  onChangeText={(text) => handleChange('companyName', text)}
+                />
+                {renderError('companyName')}
+              </View>
+
+              <View style={styles.inputBox}>
+                <Text style={styles.label}>📧 Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#999"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={(text) => handleChange('email', text)}
+                />
+                {renderError('email')}
+              </View>
+
+              <View style={styles.inputBox}>
+                <Text style={styles.label}>📱 Mobile Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your number"
+                  placeholderTextColor="#999"
+                  keyboardType="phone-pad"
+                  value={mobile}
+                  onChangeText={(text) => handleChange('mobile', text)}
+                />
+                {renderError('mobile')}
+              </View>
+
+              <View style={styles.inputBox}>
+                <Text style={styles.label}>🔒 Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#999"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={(text) => handleChange('password', text)}
+                />
+                {renderError('password')}
+              </View>
+
+             {/* 📍 Location */}
+<View style={styles.inputBox}>
+  <Text style={styles.label}>📍 Location</Text>
+  <TextInput
+    style={[styles.input, styles.textArea]}
+    placeholder="Enter your location"
+    placeholderTextColor="#999"
+    multiline
+    value={address}
+    onChangeText={(text) => handleChange('address', text)}
+  />
+  {renderError('address')}
+</View>
+
+{userType === 'LSP' && (
+  <View style={styles.inputBox}>
+    <Text style={styles.label}>🌍 Service Zone</Text>
+    <View style={styles.dropdownWrapper}>
+      <Picker
+        selectedValue={serviceZone}
+        onValueChange={(value) => handleChange('serviceZone', value)}
+        style={styles.picker}
+        dropdownIconColor="#1D3557"
+      >
+        <Picker.Item label="Select Zone" value="" color="#999" />
+        <Picker.Item label="North" value="NORTH" />
+        <Picker.Item label="South" value="SOUTH" />
+        <Picker.Item label="East" value="EAST" />
+        <Picker.Item label="West" value="WEST" />
+      </Picker>
+    </View>
+    {renderError('serviceZone')}
+  </View>
+)}
+
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.button,
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={handleSignup}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#1D3557" />
+                ) : (
+                  <Text style={styles.buttonText}>SignUp</Text>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => setUserType(null)}
+                style={{ marginTop: 20, alignItems: 'center' }}
+              >
+                <Text style={styles.backLink}>← Back</Text>
+              </Pressable>
+
+              <View style={{ marginTop: 25, alignItems: 'center' }}>
+                <Text style={{ color: '#DCEFFF' }}>
+                  Already have an account?{' '}
+                  <Text
+                    style={{ color: '#F1FAEE', fontWeight: 'bold' }}
+                    onPress={() => navigation.navigate('Login')}
+                  >
+                    Login
+                  </Text>
+                </Text>
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
+  );
+};
+
+const styles = StyleSheet.create({
+  gradient: { flex: 1 },
+  container: { flexGrow: 1, padding: 24, paddingTop: 50 },
+  header: { fontSize: 28, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 10 },
+  subHeader: { fontSize: 16, color: '#DCEFFF', textAlign: 'center', marginBottom: 25 },
+  selectButton: {
+    backgroundColor: '#ffffff22',
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#A8DADC',
+  },
+  selected: {
+    backgroundColor: '#457B9D',
+    borderColor: '#F1FAEE',
+  },
+  selectText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F1FAEE',
+  },
+  inputBox: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: '#E0E0E0', marginBottom: 6 },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#B0BEC5',
+    color: '#000',
+  },
+  textArea: {
+    textAlignVertical: 'top',
+    height: 80,
+  },
+  button: {
+    backgroundColor: '#F1FAEE',
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  dropdownWrapper: {
+  borderWidth: 1,
+  borderColor: '#B0BEC5',
+  borderRadius: 10,
+  backgroundColor: '#fff',
+  overflow: 'hidden',
+},
+picker: {
+  height: 50,
+  color: '#000',
+},
+
+  buttonText: { color: '#1D3557', fontSize: 16, fontWeight: 'bold' },
+  error: { color: '#FFCDD2', fontSize: 13, marginTop: 4 },
+  backLink: { fontSize: 14, color: '#F1FAEE', fontWeight: '500' },
+});
+
+export default SignupScreen;
